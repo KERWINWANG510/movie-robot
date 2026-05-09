@@ -1,0 +1,11 @@
+.env
+__pycache__/
+*.py[cod]
+.Python
+*.sqlite3
+backend/data/
+frontend/node_modules/
+frontend/dist/
+backend/static/
+.idea/
+.vscode/

@@ -1,0 +1,22 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-请更换为长随机串}
+      MOUNT_PATH: /data
+      DATABASE_URL: sqlite+aiosqlite:///./data/app.db
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8000}
+      ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-false}
+      SESSION_HTTPS_ONLY: ${SESSION_HTTPS_ONLY:-false}
+    volumes:
+      - movie_robot_data:/app/data
+      # 将 NAS 共享目录挂载到容器内路径（示例）：
+      # - /volume1/Media:/data:rw
+
+volumes:
+  movie_robot_data:
