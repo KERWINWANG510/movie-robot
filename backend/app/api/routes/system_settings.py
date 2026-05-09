@@ -1,47 +1,63 @@
+from pathlib import Path
+
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
-from app.config import get_settings
 from app.database import get_db
 from app.models.system_config import SystemConfig
 from app.models.user import User
 from app.schemas.system_settings import (
+    AiProviderOption,
+    AiProvidersListResponse,
     ModelsListResponse,
     ModelsProbeRequest,
     ModelOption,
     SystemSettingsPatch,
     SystemSettingsPublic,
 )
-from app.services.runtime_config import effective_mount_root, get_system_config_row
+from app.services.ai_providers import ALLOWED_PROVIDER_IDS, list_presets_public, resolve_effective_base_url
+from app.services.runtime_config import get_system_config_row, resolve_probe_base_url
 
 router = APIRouter(prefix="/settings", tags=["系统配置"])
 
 
+def _normalize_ai_provider(raw: str | None) -> str:
+    v = (raw or "custom").strip().lower()
+    return v if v in ALLOWED_PROVIDER_IDS else "custom"
+
+
 def _mount_ready(row: SystemConfig | None) -> bool:
+    if row is None:
+        return False
+    raw = (row.mount_path or "").strip()
+    if not raw:
+        return False
     try:
-        root = effective_mount_root(row)
+        root = Path(raw).expanduser().resolve()
         return root.exists() and root.is_dir()
     except OSError:
         return False
 
 
 def _row_to_public(row: SystemConfig | None) -> SystemSettingsPublic:
-    env = get_settings()
     mount = (row.mount_path if row else "") or ""
     base = (row.openai_base_url if row else "") or ""
     model = (row.openai_model if row else "") or ""
     key_stored = (row.openai_api_key if row else "") or ""
-    key_env = (env.openai_api_key or "").strip()
-    has_key = bool(key_stored.strip()) or bool(key_env)
+    key_in_db = bool(key_stored.strip())
     ri = (getattr(row, "rename_instruction", "") or "") if row else ""
+    ap = _normalize_ai_provider(getattr(row, "ai_provider", None) if row else None)
+    eff_base = resolve_effective_base_url(ai_provider=ap, stored_custom_url=base)
     return SystemSettingsPublic(
         mount_path=mount,
+        ai_provider=ap,
         openai_base_url=base,
+        effective_openai_base_url=eff_base,
         openai_model=model,
         rename_instruction=ri,
-        has_openai_api_key=has_key,
+        api_key_saved_in_db=key_in_db,
         mount_ready=_mount_ready(row),
     )
 
@@ -67,6 +83,8 @@ async def patch_system_settings(
     data = body.model_dump(exclude_unset=True)
     if "mount_path" in data and data["mount_path"] is not None:
         row.mount_path = data["mount_path"].strip()
+    if "ai_provider" in data and data["ai_provider"] is not None:
+        row.ai_provider = _normalize_ai_provider(data["ai_provider"])
     if "openai_base_url" in data and data["openai_base_url"] is not None:
         row.openai_base_url = data["openai_base_url"].strip()
     if "openai_model" in data and data["openai_model"] is not None:
@@ -90,22 +108,22 @@ async def list_remote_models(
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
 ) -> ModelsListResponse:
-    env = get_settings()
     row = await get_system_config_row(db)
 
-    base = (body.openai_base_url or "").strip()
+    base = resolve_probe_base_url(
+        body_ai_provider=body.ai_provider,
+        body_openai_base_url=body.openai_base_url,
+        row=row,
+    )
     key = (body.openai_api_key or "").strip()
-    if not base and row:
-        base = (row.openai_base_url or "").strip()
-    if not base:
-        base = env.openai_base_url.strip()
     if not key and row:
         key = (row.openai_api_key or "").strip()
-    if not key:
-        key = env.openai_api_key.strip()
 
     if not base or not key:
-        raise HTTPException(status_code=400, detail="请先填写 API 地址与密钥，或在配置中保存后再试")
+        raise HTTPException(
+            status_code=400,
+            detail="请先填写 API 地址与密钥并保存到配置，或在上方输入框中填写后再获取模型列表",
+        )
 
     url = base.rstrip("/") + "/models"
     headers = {"Authorization": f"Bearer {key}", "Accept": "application/json"}
@@ -141,3 +159,12 @@ async def list_remote_models(
 
     options.sort(key=lambda x: x.id.lower())
     return ModelsListResponse(models=options)
+
+
+@router.get("/ai/providers", response_model=AiProvidersListResponse)
+async def list_ai_provider_presets(
+    _user: User = Depends(get_current_user),
+) -> AiProvidersListResponse:
+    return AiProvidersListResponse(
+        providers=[AiProviderOption(**p) for p in list_presets_public()],
+    )

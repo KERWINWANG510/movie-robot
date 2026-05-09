@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Cpu, EditPen, FolderOpened, Key, MagicStick } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 
 import http from "../api/http";
 import { useAuthStore } from "../stores/auth";
@@ -24,31 +24,61 @@ const prefLoading = ref(false);
 
 const form = reactive({
   mount_path: "",
+  ai_provider: "custom",
   openai_base_url: "",
   openai_model: "",
   rename_instruction: "",
 });
+
+type ProviderPreset = { id: string; label: string; base_url: string };
+const aiPresets = ref<ProviderPreset[]>([]);
+
+const providerSelectOptions = computed(() => [
+  ...aiPresets.value.map((p) => ({ value: p.id, label: p.label })),
+  { value: "custom", label: "自定义（手动填写 API Base URL）" },
+]);
+
+/** 当前解析后的 Base URL（预设走内置地址） */
+const effectiveBasePreview = computed(() => {
+  if (form.ai_provider === "custom") {
+    return (form.openai_base_url || "").trim();
+  }
+  const hit = aiPresets.value.find((p) => p.id === form.ai_provider);
+  return hit?.base_url?.trim() ?? "";
+});
 const apiKeyInput = ref("");
-const hasSavedKey = ref(false);
+/** 库中是否已保存 API Key（仅此时展示「清除库内密钥」） */
+const apiKeySavedInDb = ref(false);
 
 type ModelOpt = { id: string; label: string };
 const modelOptions = ref<ModelOpt[]>([]);
+
+async function loadAiPresets() {
+  try {
+    const { data } = await http.get<{ providers: ProviderPreset[] }>("/settings/ai/providers");
+    aiPresets.value = data.providers ?? [];
+  } catch (e: unknown) {
+    ElMessage.error(errMsg(e));
+  }
+}
 
 async function loadSettings() {
   loading.value = true;
   try {
     const { data } = await http.get<{
       mount_path: string;
+      ai_provider: string;
       openai_base_url: string;
       openai_model: string;
       rename_instruction: string;
-      has_openai_api_key: boolean;
+      api_key_saved_in_db: boolean;
     }>("/settings");
     form.mount_path = data.mount_path;
+    form.ai_provider = data.ai_provider || "custom";
     form.openai_base_url = data.openai_base_url;
     form.openai_model = data.openai_model;
     form.rename_instruction = data.rename_instruction ?? "";
-    hasSavedKey.value = data.has_openai_api_key;
+    apiKeySavedInDb.value = data.api_key_saved_in_db;
     apiKeyInput.value = "";
     if (form.openai_model && !modelOptions.value.some((m) => m.id === form.openai_model)) {
       modelOptions.value = [{ id: form.openai_model, label: form.openai_model }, ...modelOptions.value];
@@ -65,10 +95,15 @@ async function saveAll() {
   try {
     const body: Record<string, string> = {
       mount_path: form.mount_path,
-      openai_base_url: form.openai_base_url,
+      ai_provider: form.ai_provider,
       openai_model: form.openai_model,
       rename_instruction: form.rename_instruction,
     };
+    if (form.ai_provider === "custom") {
+      body.openai_base_url = form.openai_base_url;
+    } else {
+      body.openai_base_url = "";
+    }
     if (apiKeyInput.value.trim()) {
       body.openai_api_key = apiKeyInput.value.trim();
     }
@@ -87,7 +122,7 @@ async function clearSavedKey() {
   saving.value = true;
   try {
     await http.patch("/settings", { openai_api_key: "" });
-    ElMessage.success("已清除库内保存的密钥（将使用环境变量中的配置）");
+    ElMessage.success("已清除库内保存的密钥");
     apiKeyInput.value = "";
     await loadSettings();
   } catch (e: unknown) {
@@ -100,10 +135,14 @@ async function clearSavedKey() {
 async function fetchModels() {
   modelsLoading.value = true;
   try {
-    const { data } = await http.post<{ models: ModelOpt[] }>("/settings/models/list", {
-      openai_base_url: form.openai_base_url || undefined,
+    const probeBody: Record<string, string | undefined> = {
+      ai_provider: form.ai_provider,
       openai_api_key: apiKeyInput.value.trim() || undefined,
-    });
+    };
+    if (form.ai_provider === "custom") {
+      probeBody.openai_base_url = form.openai_base_url.trim() || undefined;
+    }
+    const { data } = await http.post<{ models: ModelOpt[] }>("/settings/models/list", probeBody);
     modelOptions.value = data.models;
     if (data.models.length === 0) {
       ElMessage.warning("未解析到模型列表，请检查网关是否提供 /v1/models");
@@ -136,6 +175,7 @@ async function onPrefChange(v: string | number | boolean) {
 }
 
 onMounted(() => {
+  loadAiPresets();
   loadSettings();
 });
 </script>
@@ -162,7 +202,7 @@ onMounted(() => {
             <el-form-item label="挂载根目录">
               <el-input
                 v-model="form.mount_path"
-                placeholder="例如容器内 /data 或 Windows 路径；留空则使用服务端环境变量 MOUNT_PATH"
+                placeholder="例如容器内 /data 或与 NAS 映射一致的本机路径"
                 clearable
               />
               <div class="hint">须与实际映射到 NAS 的路径一致，保存后立即生效。</div>
@@ -178,8 +218,29 @@ onMounted(() => {
             </div>
           </template>
           <el-form label-position="top" class="nice-form">
-            <el-form-item label="API Base URL">
-              <el-input v-model="form.openai_base_url" placeholder="OpenAI 兼容网关，如 https://api.openai.com/v1" clearable />
+            <el-form-item label="AI 服务商">
+              <el-select v-model="form.ai_provider" placeholder="选择服务商" filterable class="provider-select">
+                <el-option
+                  v-for="opt in providerSelectOptions"
+                  :key="opt.value"
+                  :label="opt.label"
+                  :value="opt.value"
+                />
+              </el-select>
+              <div class="hint">
+                选择内置服务商时只需填写 API Key，Base URL 由系统默认提供；选择「自定义」时需自行填写 Base URL 与 Key。
+              </div>
+            </el-form-item>
+            <el-form-item v-if="form.ai_provider !== 'custom'" label="API Base URL（内置）">
+              <el-input :model-value="effectiveBasePreview" readonly disabled />
+              <div class="hint">以上为当前服务商默认地址，无需手动填写。</div>
+            </el-form-item>
+            <el-form-item v-else label="API Base URL">
+              <el-input
+                v-model="form.openai_base_url"
+                placeholder="OpenAI 兼容网关根路径，如 https://api.openai.com/v1"
+                clearable
+              />
             </el-form-item>
             <el-form-item label="API Key">
               <el-input
@@ -187,14 +248,17 @@ onMounted(() => {
                 type="password"
                 show-password
                 :placeholder="
-                  hasSavedKey ? '已保存密钥；输入新值可覆盖，留空保存则不修改' : '请输入密钥；保存后写入数据库'
+                  apiKeySavedInDb
+                    ? '已保存密钥；输入新值可覆盖，留空保存则不修改'
+                    : '请输入密钥；保存后写入数据库'
                 "
                 clearable
               />
-              <div class="hint-row">
-                <el-tag v-if="hasSavedKey" size="small" type="success" effect="plain">库内已保存密钥</el-tag>
-                <el-tag v-else size="small" type="info" effect="plain">未在库中保存（使用环境变量）</el-tag>
-                <el-button text type="danger" size="small" :disabled="saving" @click="clearSavedKey"> 清除库内密钥 </el-button>
+              <div v-if="apiKeySavedInDb" class="hint-row">
+                <el-tag size="small" type="success" effect="plain">库内已保存密钥</el-tag>
+                <el-button text type="danger" size="small" :disabled="saving" @click="clearSavedKey">
+                  清除库内密钥
+                </el-button>
               </div>
             </el-form-item>
             <el-form-item label="模型">
@@ -214,7 +278,9 @@ onMounted(() => {
                   获取模型列表
                 </el-button>
               </div>
-              <div class="hint">填写 API 与密钥后可拉取远端模型；部分自建网关可能不支持列表接口，可直接输入模型名。</div>
+              <div class="hint">
+                填写密钥（及自定义模式下的 Base URL）后可拉取远端模型；部分网关不支持 /v1/models，可直接输入模型 ID。
+              </div>
             </el-form-item>
             <el-form-item>
               <template #label>
@@ -343,6 +409,10 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
+  width: 100%;
+}
+
+.provider-select {
   width: 100%;
 }
 

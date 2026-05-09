@@ -52,3 +52,9 @@ async def _migrate_sqlite_schema() -> None:
                     "ALTER TABLE system_config ADD COLUMN rename_instruction TEXT NOT NULL DEFAULT ''",
                 ),
             )
+        if "ai_provider" not in col_names:
+            await conn.execute(
+                text(
+                    "ALTER TABLE system_config ADD COLUMN ai_provider VARCHAR(64) NOT NULL DEFAULT 'custom'",
+                ),
+            )

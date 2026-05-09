@@ -24,7 +24,10 @@ async def browse(
     db: AsyncSession = Depends(get_db),
 ) -> BrowseResponse:
     cfg_row = await get_system_config_row(db)
-    root = effective_mount_root(cfg_row)
+    try:
+        root = effective_mount_root(cfg_row)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="请先在系统配置中填写有效的挂载根目录") from None
     rel = path.strip().replace("\\", "/").lstrip("/")
     try:
         if not rel:

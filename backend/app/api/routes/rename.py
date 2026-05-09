@@ -70,7 +70,10 @@ async def preview_rename(
     user: User = Depends(get_current_user),
 ) -> PreviewResponse:
     cfg_row = await get_system_config_row(db)
-    mount_root = effective_mount_root(cfg_row)
+    try:
+        mount_root = effective_mount_root(cfg_row)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="请先在系统配置中填写有效的挂载根目录") from None
     ai = effective_ai_params(cfg_row)
     await _cleanup_expired(db)
 
@@ -171,7 +174,10 @@ async def execute_rename(
     user: User = Depends(get_current_user),
 ) -> ExecuteResponse:
     cfg_row = await get_system_config_row(db)
-    mount_root = effective_mount_root(cfg_row)
+    try:
+        mount_root = effective_mount_root(cfg_row)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="请先在系统配置中填写有效的挂载根目录") from None
     allowed_paths: set[str] | None = None
     preview_row: PreviewSession | None = None
 

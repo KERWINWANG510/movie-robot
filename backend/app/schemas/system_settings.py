@@ -5,28 +5,43 @@ class SystemSettingsPublic(BaseModel):
     """返回给前端的配置（不回显 API Key 明文）。"""
 
     mount_path: str = ""
+    ai_provider: str = "custom"
     openai_base_url: str = ""
+    effective_openai_base_url: str = ""
     openai_model: str = ""
     rename_instruction: str = ""
-    has_openai_api_key: bool = False
+    # 仅在库中保存了 API Key 时为 True（用于是否展示「清除库内密钥」）
+    api_key_saved_in_db: bool = False
     # 合并后的挂载根路径存在且为目录时可用；否则首页应引导先配置
     mount_ready: bool = False
 
 
 class SystemSettingsPatch(BaseModel):
     mount_path: str | None = Field(default=None, description="挂载根路径")
+    ai_provider: str | None = Field(default=None, description="内置服务商 id 或 custom")
     openai_base_url: str | None = None
     openai_model: str | None = None
     rename_instruction: str | None = Field(default=None, description="自然语言重命名说明")
     openai_api_key: str | None = Field(
         default=None,
-        description="传入则更新；传空字符串表示清空库内密钥（回退仅用环境变量）",
+        description="传入则更新；传空字符串表示清空库内密钥",
     )
 
 
 class ModelsProbeRequest(BaseModel):
-    openai_base_url: str | None = Field(default=None, description="可与表单一致；省略则用库内或环境变量")
-    openai_api_key: str | None = Field(default=None, description="省略则用库内或环境变量")
+    ai_provider: str | None = Field(default=None, description="探测未保存表单时可传，与库内合并解析 Base URL")
+    openai_base_url: str | None = Field(default=None, description="可与表单一致；省略则按服务商与库内解析")
+    openai_api_key: str | None = Field(default=None, description="省略则用库内已保存值")
+
+
+class AiProviderOption(BaseModel):
+    id: str
+    label: str
+    base_url: str
+
+
+class AiProvidersListResponse(BaseModel):
+    providers: list[AiProviderOption]
 
 
 class ModelOption(BaseModel):

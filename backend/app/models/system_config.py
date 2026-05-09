@@ -18,25 +18,31 @@ class SystemConfig(Base):
         String(1024),
         default="",
         nullable=False,
-        comment="挂载根目录路径；空则使用环境变量 MOUNT_PATH",
+        comment="挂载根目录路径；须在界面保存后方可浏览文件",
+    )
+    ai_provider: Mapped[str] = mapped_column(
+        String(64),
+        default="custom",
+        nullable=False,
+        comment="AI 服务商：custom 为自定义 Base URL；其余为内置预设 id",
     )
     openai_base_url: Mapped[str] = mapped_column(
         String(1024),
         default="",
         nullable=False,
-        comment="OpenAI 兼容 API 根地址",
+        comment="自定义模式下 OpenAI 兼容 API 根地址；预设模式下可为空",
     )
     openai_api_key: Mapped[str] = mapped_column(
         String(512),
         default="",
         nullable=False,
-        comment="API 密钥；空则使用环境变量 OPENAI_API_KEY",
+        comment="API 密钥；须在界面保存后方可调用 AI",
     )
     openai_model: Mapped[str] = mapped_column(
         String(256),
         default="",
         nullable=False,
-        comment="模型 ID；空则使用环境变量 OPENAI_MODEL",
+        comment="模型 ID；须在界面保存后方可调用 AI",
     )
     rename_instruction: Mapped[str] = mapped_column(
         Text,
