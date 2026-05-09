@@ -6,7 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.database import get_db
 from app.models.user import User
-from app.schemas.files import BrowseResponse, FileEntry
+from app.schemas.files import (
+    BrowseResponse,
+    FileEntry,
+    FolderMergeRequest,
+    FolderMergeResponse,
+    FolderMergeResultItem,
+)
+from app.services.folder_merge import merge_folder_trees_flat
 from app.services.path_security import PathNotAllowedError, resolve_under_root
 from app.services.runtime_config import effective_mount_root, get_system_config_row
 
@@ -61,3 +68,34 @@ async def browse(
 
     display_path = "" if not rel else rel
     return BrowseResponse(path=display_path, entries=entries)
+
+
+@router.post("/folders/merge", response_model=FolderMergeResponse)
+async def merge_folders(
+    body: FolderMergeRequest,
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> FolderMergeResponse:
+    cfg_row = await get_system_config_row(db)
+    try:
+        root = effective_mount_root(cfg_row)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="请先在系统配置中填写有效的挂载根目录") from None
+
+    raw = merge_folder_trees_flat(
+        root=root,
+        source_rel_paths=body.source_paths,
+        target_rel=body.target_path,
+    )
+    items = [
+        FolderMergeResultItem(
+            source_path=s,
+            dest_path=d,
+            ok=ok,
+            message=msg,
+        )
+        for s, d, ok, msg in raw
+    ]
+    moved = sum(1 for x in items if x.ok)
+    failed = sum(1 for x in items if not x.ok)
+    return FolderMergeResponse(results=items, moved_count=moved, failed_count=failed)

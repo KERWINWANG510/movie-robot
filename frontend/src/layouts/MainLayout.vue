@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FolderOpened, Menu as IconMenu, Setting } from "@element-plus/icons-vue";
+import { CopyDocument, EditPen, Menu as IconMenu, Setting } from "@element-plus/icons-vue";
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
@@ -11,12 +11,15 @@ const route = useRoute();
 
 const drawerVisible = ref(false);
 
+type NavName = "rename" | "folder-merge" | "settings";
+
 const navItems = computed(() => [
-  { name: "home" as const, title: "文件浏览", icon: FolderOpened },
+  { name: "rename" as const, title: "文件重命名", icon: EditPen },
+  { name: "folder-merge" as const, title: "文件夹合并", icon: CopyDocument },
   { name: "settings" as const, title: "系统配置", icon: Setting },
 ]);
 
-function go(name: "home" | "settings") {
+function go(name: NavName) {
   router.push({ name });
   drawerVisible.value = false;
 }
@@ -26,7 +29,11 @@ async function logout() {
   await router.replace({ name: "login" });
 }
 
-const activeMenu = computed(() => (route.name === "settings" ? "settings" : "home"));
+const activeMenu = computed(() => {
+  if (route.name === "settings") return "settings";
+  if (route.name === "folder-merge") return "folder-merge";
+  return "rename";
+});
 </script>
 
 <template>
@@ -49,10 +56,14 @@ const activeMenu = computed(() => (route.name === "settings" ? "settings" : "hom
 
     <div class="body">
       <aside class="side-desktop" aria-label="主导航">
-        <el-menu :default-active="activeMenu" class="side-menu">
-          <el-menu-item index="home" @click="go('home')">
-            <el-icon><FolderOpened /></el-icon>
-            <span>文件浏览</span>
+        <el-menu :key="activeMenu" :default-active="activeMenu" class="side-menu">
+          <el-menu-item index="rename" @click="go('rename')">
+            <el-icon><EditPen /></el-icon>
+            <span>文件重命名</span>
+          </el-menu-item>
+          <el-menu-item index="folder-merge" @click="go('folder-merge')">
+            <el-icon><CopyDocument /></el-icon>
+            <span>文件夹合并</span>
           </el-menu-item>
           <el-menu-item index="settings" @click="go('settings')">
             <el-icon><Setting /></el-icon>
@@ -67,7 +78,7 @@ const activeMenu = computed(() => (route.name === "settings" ? "settings" : "hom
     </div>
 
     <el-drawer v-model="drawerVisible" direction="ltr" size="260px" title="导航" class="nav-drawer">
-      <el-menu :default-active="activeMenu" @select="(i: string) => go(i as 'home' | 'settings')">
+      <el-menu :key="activeMenu" :default-active="activeMenu" @select="(i: string) => go(i as NavName)">
         <el-menu-item v-for="item in navItems" :key="item.name" :index="item.name">
           <el-icon><component :is="item.icon" /></el-icon>
           <span>{{ item.title }}</span>

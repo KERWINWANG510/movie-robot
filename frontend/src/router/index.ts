@@ -14,7 +14,8 @@ const router = createRouter({
       path: "/",
       component: MainLayout,
       children: [
-        { path: "", name: "home", component: HomeView },
+        { path: "", name: "rename", component: HomeView },
+        { path: "merge", name: "folder-merge", component: HomeView },
         { path: "settings", name: "settings", component: SettingsView },
       ],
     },
@@ -27,7 +28,7 @@ router.beforeEach(async (to, _from, next) => {
     if (to.name === "login") {
       await auth.fetchMe().catch(() => undefined);
       if (auth.user) {
-        next({ name: "home" });
+        next({ name: "rename" });
         return;
       }
     }
