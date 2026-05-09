@@ -4,7 +4,6 @@ import { computed, nextTick, ref, watch } from "vue";
 
 import http from "../api/http";
 import { useAuthStore } from "../stores/auth";
-import { useRouter } from "vue-router";
 
 type FileEntry = { name: string; path: string; is_dir: boolean };
 
@@ -26,7 +25,6 @@ type PreviewResponse = {
 };
 
 const auth = useAuthStore();
-const router = useRouter();
 
 function errMsg(e: unknown): string {
   if (typeof e === "object" && e !== null && "response" in e) {
@@ -51,21 +49,6 @@ const breadcrumbParts = computed(() => {
   if (!currentPath.value) return [];
   return currentPath.value.split("/").filter(Boolean);
 });
-
-const autoSwitchLoading = ref(false);
-
-async function onAutoChange(v: string | number | boolean) {
-  const next = Boolean(v);
-  autoSwitchLoading.value = true;
-  try {
-    await auth.updatePreference(next);
-    ElMessage.success("偏好已保存");
-  } catch (e: unknown) {
-    ElMessage.error(errMsg(e));
-  } finally {
-    autoSwitchLoading.value = false;
-  }
-}
 
 function selectable(row: FileEntry) {
   return !row.is_dir;
@@ -183,11 +166,6 @@ async function runAutoPipeline() {
   await runExecute();
 }
 
-async function logout() {
-  await auth.logout();
-  await router.replace({ name: "login" });
-}
-
 watch(
   currentPath,
   () => {
@@ -198,32 +176,12 @@ watch(
 </script>
 
 <template>
-  <div class="layout">
-    <el-container class="shell">
-      <el-header class="top" height="auto">
-        <div class="top-inner">
-          <div class="brand">
-            <strong>智能文件重命名</strong>
-            <span v-if="auth.user" class="sub">用户：{{ auth.user.username }}</span>
-          </div>
-          <div class="controls">
-            <span class="hint">命名模式</span>
-            <el-switch
-              :model-value="auth.user?.auto_rename_without_preview ?? false"
-              :loading="autoSwitchLoading"
-              active-text="全自动"
-              inactive-text="预览确认"
-              inline-prompt
-              style="margin-right: 8px"
-              @change="onAutoChange"
-            />
-            <el-button @click="logout">退出</el-button>
-          </div>
-        </div>
-      </el-header>
-
-      <el-main class="main">
-        <el-row :gutter="16">
+  <div class="home-page">
+    <div class="page-intro">
+      <h2 class="page-title">浏览与重命名</h2>
+      <p class="page-desc">勾选文件后预览 AI 建议名；挂载路径与模型请在「系统配置」中设置。</p>
+    </div>
+    <el-row :gutter="16">
           <el-col :xs="24" :lg="14">
             <el-card shadow="never">
               <template #header>
@@ -315,49 +273,33 @@ watch(
             </el-card>
           </el-col>
         </el-row>
-      </el-main>
-    </el-container>
   </div>
 </template>
 
 <style scoped>
-.layout {
-  min-height: 100vh;
-}
-.shell {
+.home-page {
   max-width: 1280px;
   margin: 0 auto;
 }
-.top {
-  padding: 12px 16px;
-  background: #fff;
-  border-bottom: 1px solid #ebeef5;
+
+.page-intro {
+  margin-bottom: 16px;
 }
-.top-inner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+
+.page-title {
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #303133;
 }
-.brand .sub {
-  margin-left: 12px;
+
+.page-desc {
+  margin: 0;
+  font-size: 14px;
   color: #909399;
-  font-size: 13px;
+  line-height: 1.5;
 }
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-.hint {
-  font-size: 13px;
-  color: #606266;
-}
-.main {
-  padding: 16px;
-}
+
 .card-head {
   display: flex;
   flex-wrap: wrap;

@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timedelta
+from pathlib import Path
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -7,7 +8,6 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
-from app.config import Settings, get_settings
 from app.database import get_db
 from app.models.preview_session import PreviewSession
 from app.models.user import User
@@ -21,6 +21,7 @@ from app.schemas.rename import (
 )
 from app.services.openai_rename import suggest_filenames
 from app.services.path_security import PathNotAllowedError, resolve_under_root
+from app.services.runtime_config import effective_ai_params, effective_mount_root, get_system_config_row
 
 router = APIRouter(prefix="/rename", tags=["智能重命名"])
 
@@ -34,10 +35,9 @@ async def _cleanup_expired(db: AsyncSession) -> None:
     await db.commit()
 
 
-def _perform_rename(settings: Settings, path_rel: str, new_name: str) -> tuple[bool, str | None]:
-    root = settings.mount_root
+def _perform_rename(mount_root: Path, path_rel: str, new_name: str) -> tuple[bool, str | None]:
     try:
-        src = resolve_under_root(root, path_rel)
+        src = resolve_under_root(mount_root, path_rel)
     except PathNotAllowedError as exc:
         return False, str(exc)
     if not src.exists():
@@ -49,7 +49,7 @@ def _perform_rename(settings: Settings, path_rel: str, new_name: str) -> tuple[b
         return False, "新文件名无效"
     dest = src.parent / cleaned
     try:
-        dest.relative_to(root.resolve())
+        dest.relative_to(mount_root.resolve())
     except ValueError:
         return False, "目标路径非法"
     if dest.resolve() == src.resolve():
@@ -69,14 +69,16 @@ async def preview_rename(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> PreviewResponse:
-    settings = get_settings()
+    cfg_row = await get_system_config_row(db)
+    mount_root = effective_mount_root(cfg_row)
+    ai = effective_ai_params(cfg_row)
     await _cleanup_expired(db)
 
     rows: list[PreviewResultRow] = []
     valid_paths: list[str] = []
     for rel in body.paths:
         try:
-            p = resolve_under_root(settings.mount_root, rel)
+            p = resolve_under_root(mount_root, rel)
         except PathNotAllowedError as exc:
             rows.append(
                 PreviewResultRow(
@@ -104,10 +106,14 @@ async def preview_rename(
 
     if valid_paths:
         try:
-            suggestions = await suggest_filenames(settings, relative_paths=valid_paths)
+            suggestions = await suggest_filenames(
+                ai,
+                relative_paths=valid_paths,
+                naming_hint=ai.rename_instruction or None,
+            )
         except Exception as exc:
             for rel in valid_paths:
-                orig = resolve_under_root(settings.mount_root, rel).name
+                orig = resolve_under_root(mount_root, rel).name
                 rows.append(
                     PreviewResultRow(
                         path=rel,
@@ -119,7 +125,7 @@ async def preview_rename(
             return PreviewResponse(preview_id=None, items=rows)
 
         for rel in valid_paths:
-            orig = resolve_under_root(settings.mount_root, rel).name
+            orig = resolve_under_root(mount_root, rel).name
             sug = suggestions.get(rel)
             if sug is None or sug == "":
                 rows.append(
@@ -164,7 +170,8 @@ async def execute_rename(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> ExecuteResponse:
-    settings = get_settings()
+    cfg_row = await get_system_config_row(db)
+    mount_root = effective_mount_root(cfg_row)
     allowed_paths: set[str] | None = None
     preview_row: PreviewSession | None = None
 
@@ -195,7 +202,7 @@ async def execute_rename(
         if allowed_paths is not None and item.path not in allowed_paths:
             results.append(ExecuteResultRow(path=item.path, ok=False, message="不在本次预览范围内"))
             continue
-        ok, msg = _perform_rename(settings, item.path, item.new_name)
+        ok, msg = _perform_rename(mount_root, item.path, item.new_name)
         results.append(ExecuteResultRow(path=item.path, ok=ok, message=msg))
 
     if preview_row is not None:

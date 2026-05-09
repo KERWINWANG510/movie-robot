@@ -6,7 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.api.routes import auth, files, rename, users
+from app.api.routes import auth, files, rename, system_settings, users
+from app.bootstrap import ensure_builtin_admin, ensure_system_config
 from app.config import get_settings
 from app.database import init_db
 
@@ -17,6 +18,8 @@ settings = get_settings()
 async def lifespan(_app: FastAPI):
     Path("data").mkdir(parents=True, exist_ok=True)
     await init_db()
+    await ensure_system_config()
+    await ensure_builtin_admin()
     yield
 
 
@@ -43,6 +46,7 @@ app.include_router(auth.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(files.router, prefix="/api/v1")
 app.include_router(rename.router, prefix="/api/v1")
+app.include_router(system_settings.router, prefix="/api/v1")
 
 
 @app.get("/api/v1/health")

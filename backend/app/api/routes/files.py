@@ -4,10 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
-from app.config import get_settings
+from app.database import get_db
 from app.models.user import User
 from app.schemas.files import BrowseResponse, FileEntry
 from app.services.path_security import PathNotAllowedError, resolve_under_root
+from app.services.runtime_config import effective_mount_root, get_system_config_row
 
 router = APIRouter(prefix="/files", tags=["文件浏览"])
 
@@ -20,9 +21,10 @@ def _rel_from_root(root: Path, full: Path) -> str:
 async def browse(
     path: str = Query("", description="相对挂载根的目录，空表示根"),
     user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> BrowseResponse:
-    settings = get_settings()
-    root = settings.mount_root
+    cfg_row = await get_system_config_row(db)
+    root = effective_mount_root(cfg_row)
     rel = path.strip().replace("\\", "/").lstrip("/")
     try:
         if not rel:

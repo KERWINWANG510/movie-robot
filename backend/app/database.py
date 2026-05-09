@@ -28,3 +28,27 @@ async def init_db() -> None:
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    await _migrate_sqlite_schema()
+
+
+async def _migrate_sqlite_schema() -> None:
+    """为已存在的 SQLite 库补充新增列（create_all 不会改旧表结构）。"""
+    url = get_settings().database_url
+    if "sqlite" not in url:
+        return
+    from sqlalchemy import text
+
+    async with engine.begin() as conn:
+        r = await conn.execute(
+            text("SELECT name FROM sqlite_master WHERE type='table' AND name='system_config'"),
+        )
+        if r.scalar_one_or_none() is None:
+            return
+        r2 = await conn.execute(text("PRAGMA table_info(system_config)"))
+        col_names = [row[1] for row in r2.fetchall()]
+        if "rename_instruction" not in col_names:
+            await conn.execute(
+                text(
+                    "ALTER TABLE system_config ADD COLUMN rename_instruction TEXT NOT NULL DEFAULT ''",
+                ),
+            )
