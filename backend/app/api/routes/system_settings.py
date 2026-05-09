@@ -14,9 +14,17 @@ from app.schemas.system_settings import (
     SystemSettingsPatch,
     SystemSettingsPublic,
 )
-from app.services.runtime_config import get_system_config_row
+from app.services.runtime_config import effective_mount_root, get_system_config_row
 
 router = APIRouter(prefix="/settings", tags=["系统配置"])
+
+
+def _mount_ready(row: SystemConfig | None) -> bool:
+    try:
+        root = effective_mount_root(row)
+        return root.exists() and root.is_dir()
+    except OSError:
+        return False
 
 
 def _row_to_public(row: SystemConfig | None) -> SystemSettingsPublic:
@@ -34,6 +42,7 @@ def _row_to_public(row: SystemConfig | None) -> SystemSettingsPublic:
         openai_model=model,
         rename_instruction=ri,
         has_openai_api_key=has_key,
+        mount_ready=_mount_ready(row),
     )
 
 

@@ -33,3 +33,7 @@ alwaysApply: true
 - 提交前展示 `git status` 和 `git diff`
 - 格式：`<type>: <中文描述>`（feat/fix/docs/style/refactor/test/chore/ci）
 - 🚫 禁止 AI 署名（No Claude/AI attribution）
+
+## 6. 数据库表生成规则
+
+- 生成数据库表时，需要为字段增加注释说明

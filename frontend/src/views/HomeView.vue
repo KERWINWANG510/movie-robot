@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { Setting } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import { computed, nextTick, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 import http from "../api/http";
 import { useAuthStore } from "../stores/auth";
@@ -25,6 +27,8 @@ type PreviewResponse = {
 };
 
 const auth = useAuthStore();
+const route = useRoute();
+const router = useRouter();
 
 function errMsg(e: unknown): string {
   if (typeof e === "object" && e !== null && "response" in e) {
@@ -34,6 +38,10 @@ function errMsg(e: unknown): string {
   }
   return "请求失败";
 }
+
+/** 挂载根可用时才展示浏览与预览；否则引导去系统配置 */
+const mountReady = ref(false);
+const setupLoading = ref(true);
 
 const currentPath = ref("");
 const entries = ref<FileEntry[]>([]);
@@ -50,11 +58,44 @@ const breadcrumbParts = computed(() => {
   return currentPath.value.split("/").filter(Boolean);
 });
 
+async function refreshMountAndBrowse() {
+  setupLoading.value = true;
+  try {
+    const { data } = await http.get<{ mount_ready: boolean }>("/settings");
+    mountReady.value = data.mount_ready;
+    currentPath.value = "";
+    if (data.mount_ready) {
+      await loadBrowse();
+    } else {
+      entries.value = [];
+      selectedPaths.value = [];
+      previewRows.value = [];
+      previewId.value = null;
+    }
+  } catch (e: unknown) {
+    ElMessage.error(errMsg(e));
+    mountReady.value = false;
+  } finally {
+    setupLoading.value = false;
+  }
+}
+
+watch(
+  () => route.name,
+  (name) => {
+    if (name === "home") {
+      refreshMountAndBrowse();
+    }
+  },
+  { immediate: true },
+);
+
 function selectable(row: FileEntry) {
   return !row.is_dir;
 }
 
 async function loadBrowse() {
+  if (!mountReady.value) return;
   browseLoading.value = true;
   try {
     const { data } = await http.get<BrowseResponse>("/files/browse", {
@@ -166,113 +207,132 @@ async function runAutoPipeline() {
   await runExecute();
 }
 
-watch(
-  currentPath,
-  () => {
+function goSettings() {
+  router.push({ name: "settings" });
+}
+
+watch(currentPath, () => {
+  if (mountReady.value) {
     loadBrowse();
-  },
-  { immediate: true },
-);
+  }
+});
 </script>
 
 <template>
-  <div class="home-page">
-    <div class="page-intro">
-      <h2 class="page-title">浏览与重命名</h2>
-      <p class="page-desc">勾选文件后预览 AI 建议名；挂载路径与模型请在「系统配置」中设置。</p>
-    </div>
-    <el-row :gutter="16">
-          <el-col :xs="24" :lg="14">
-            <el-card shadow="never">
-              <template #header>
-                <div class="card-head">
-                  <span>浏览挂载目录</span>
-                  <el-button text type="primary" @click="goRoot">根目录</el-button>
-                  <el-button text type="primary" :disabled="!currentPath" @click="goParent">上级</el-button>
-                  <el-button text type="primary" @click="loadBrowse">刷新</el-button>
-                </div>
-              </template>
-
-              <el-breadcrumb separator="/" class="crumb">
-                <el-breadcrumb-item>
-                  <el-link type="primary" @click="goRoot">root</el-link>
-                </el-breadcrumb-item>
-                <el-breadcrumb-item v-for="(p, idx) in breadcrumbParts" :key="idx">
-                  <el-link type="primary" @click="goIndex(idx)">{{ p }}</el-link>
-                </el-breadcrumb-item>
-              </el-breadcrumb>
-
-              <el-table
-                :data="entries"
-                v-loading="browseLoading"
-                row-key="path"
-                height="360"
-                class="file-table"
-                @selection-change="onSelectionChange"
-              >
-                <el-table-column type="selection" width="48" :selectable="selectable" />
-                <el-table-column label="名称" min-width="160">
-                  <template #default="{ row }">
-                    <el-link v-if="row.is_dir" type="primary" @click="enterDir(row)">{{ row.name }}/</el-link>
-                    <span v-else>{{ row.name }}</span>
-                  </template>
-                </el-table-column>
-                <el-table-column label="路径" prop="path" min-width="220" show-overflow-tooltip />
-              </el-table>
-
-              <div class="actions">
-                <el-button type="primary" :loading="previewLoading" @click="runPreview">预览 AI 建议名</el-button>
-                <el-button
-                  v-if="auth.user?.auto_rename_without_preview"
-                  type="success"
-                  :loading="previewLoading || executeLoading"
-                  @click="runAutoPipeline"
-                >
-                  全自动：预览并立即执行
-                </el-button>
-                <el-button
-                  v-if="!auth.user?.auto_rename_without_preview"
-                  type="success"
-                  :loading="executeLoading"
-                  :disabled="!canExecute || !previewId"
-                  @click="runExecute"
-                >
-                  确认执行重命名
-                </el-button>
-                <el-button
-                  v-if="auth.user?.auto_rename_without_preview"
-                  type="success"
-                  plain
-                  :loading="executeLoading"
-                  :disabled="!canExecute"
-                  @click="runExecute"
-                >
-                  仅执行（已预览）
-                </el-button>
+  <div class="home-page" v-loading="setupLoading">
+    <template v-if="mountReady">
+      <div class="page-intro">
+        <h2 class="page-title">浏览与重命名</h2>
+        <p class="page-desc">勾选文件后预览 AI 建议名；挂载路径与模型请在「系统配置」中设置。</p>
+      </div>
+      <el-row :gutter="16">
+        <el-col :xs="24" :lg="14">
+          <el-card shadow="never">
+            <template #header>
+              <div class="card-head">
+                <span>浏览挂载目录</span>
+                <el-button text type="primary" @click="goRoot">根目录</el-button>
+                <el-button text type="primary" :disabled="!currentPath" @click="goParent">上级</el-button>
+                <el-button text type="primary" @click="loadBrowse">刷新</el-button>
               </div>
-              <p class="tips">
-                「预览确认」模式下需先预览；执行时会校验预览会话。全自动模式下可不强制预览会话，但仍建议先预览检查。
-              </p>
-            </el-card>
-          </el-col>
+            </template>
 
-          <el-col :xs="24" :lg="10">
-            <el-card shadow="never">
-              <template #header>
-                <span>预览与编辑</span>
-              </template>
-              <el-table :data="previewRows" size="small" max-height="420">
-                <el-table-column label="原文件名" min-width="120" prop="original_name" show-overflow-tooltip />
-                <el-table-column label="建议新文件名" min-width="160">
-                  <template #default="{ row }">
-                    <el-input v-if="!row.error" v-model="row.suggested_name" />
-                    <span v-else class="err">{{ row.error }}</span>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </el-card>
-          </el-col>
-        </el-row>
+            <el-breadcrumb separator="/" class="crumb">
+              <el-breadcrumb-item>
+                <el-link type="primary" @click="goRoot">root</el-link>
+              </el-breadcrumb-item>
+              <el-breadcrumb-item v-for="(p, idx) in breadcrumbParts" :key="idx">
+                <el-link type="primary" @click="goIndex(idx)">{{ p }}</el-link>
+              </el-breadcrumb-item>
+            </el-breadcrumb>
+
+            <el-table
+              :data="entries"
+              v-loading="browseLoading"
+              row-key="path"
+              height="360"
+              class="file-table"
+              @selection-change="onSelectionChange"
+            >
+              <el-table-column type="selection" width="48" :selectable="selectable" />
+              <el-table-column label="名称" min-width="160">
+                <template #default="{ row }">
+                  <el-link v-if="row.is_dir" type="primary" @click="enterDir(row)">{{ row.name }}/</el-link>
+                  <span v-else>{{ row.name }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="路径" prop="path" min-width="220" show-overflow-tooltip />
+            </el-table>
+
+            <div class="actions">
+              <el-button type="primary" :loading="previewLoading" @click="runPreview">预览 AI 建议名</el-button>
+              <el-button
+                v-if="auth.user?.auto_rename_without_preview"
+                type="success"
+                :loading="previewLoading || executeLoading"
+                @click="runAutoPipeline"
+              >
+                全自动：预览并立即执行
+              </el-button>
+              <el-button
+                v-if="!auth.user?.auto_rename_without_preview"
+                type="success"
+                :loading="executeLoading"
+                :disabled="!canExecute || !previewId"
+                @click="runExecute"
+              >
+                确认执行重命名
+              </el-button>
+              <el-button
+                v-if="auth.user?.auto_rename_without_preview"
+                type="success"
+                plain
+                :loading="executeLoading"
+                :disabled="!canExecute"
+                @click="runExecute"
+              >
+                仅执行（已预览）
+              </el-button>
+            </div>
+            <p class="tips">
+              「预览确认」模式下需先预览；执行时会校验预览会话。全自动模式下可不强制预览会话，但仍建议先预览检查。
+            </p>
+          </el-card>
+        </el-col>
+
+        <el-col :xs="24" :lg="10">
+          <el-card shadow="never">
+            <template #header>
+              <span>预览与编辑</span>
+            </template>
+            <el-table :data="previewRows" size="small" max-height="420">
+              <el-table-column label="原文件名" min-width="120" prop="original_name" show-overflow-tooltip />
+              <el-table-column label="建议新文件名" min-width="160">
+                <template #default="{ row }">
+                  <el-input v-if="!row.error" v-model="row.suggested_name" />
+                  <span v-else class="err">{{ row.error }}</span>
+                </template>
+              </el-table-column>
+            </el-table>
+          </el-card>
+        </el-col>
+      </el-row>
+    </template>
+
+    <div v-else-if="!setupLoading" class="setup-wrap">
+      <el-card class="setup-card" shadow="hover">
+        <div class="setup-inner">
+          <h2 class="page-title">请先配置挂载目录</h2>
+          <p class="setup-desc">
+            当前还没有可用的挂载根路径（路径不存在或不是文件夹）。请在系统配置中填写并保存「挂载根目录」，确保该路径在服务端可访问。
+          </p>
+          <el-button type="primary" size="large" @click="goSettings">
+            <el-icon class="btn-ic"><Setting /></el-icon>
+            前往系统配置
+          </el-button>
+        </div>
+      </el-card>
+    </div>
   </div>
 </template>
 
@@ -280,6 +340,7 @@ watch(
 .home-page {
   max-width: 1280px;
   margin: 0 auto;
+  min-height: 240px;
 }
 
 .page-intro {
@@ -298,6 +359,36 @@ watch(
   font-size: 14px;
   color: #909399;
   line-height: 1.5;
+}
+
+.setup-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.setup-card {
+  width: 100%;
+  max-width: 520px;
+  border-radius: 14px;
+}
+
+.setup-inner {
+  padding: 12px 8px 8px;
+  text-align: center;
+}
+
+.setup-desc {
+  margin: 0 0 24px;
+  font-size: 14px;
+  color: #606266;
+  line-height: 1.65;
+  text-align: left;
+}
+
+.btn-ic {
+  margin-right: 6px;
+  vertical-align: middle;
 }
 
 .card-head {

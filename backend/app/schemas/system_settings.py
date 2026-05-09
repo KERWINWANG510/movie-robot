@@ -9,6 +9,8 @@ class SystemSettingsPublic(BaseModel):
     openai_model: str = ""
     rename_instruction: str = ""
     has_openai_api_key: bool = False
+    # 合并后的挂载根路径存在且为目录时可用；否则首页应引导先配置
+    mount_ready: bool = False
 
 
 class SystemSettingsPatch(BaseModel):
