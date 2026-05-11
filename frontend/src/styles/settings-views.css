@@ -5,6 +5,11 @@
   padding-bottom: 8px;
 }
 
+.settings-page-wrap.has-sticky-actionbar {
+  /* 给内容区预留空间，避免最后一个表单项被吸附栏遮挡 */
+  padding-bottom: calc(var(--mr-settings-sticky-bar-height, 76px) + env(safe-area-inset-bottom, 0px) + 18px);
+}
+
 .settings-page-wrap .page-head {
   margin-bottom: 0;
 }
@@ -157,6 +162,43 @@
   min-width: 200px;
   border-radius: var(--mr-radius-sm);
   box-shadow: 0 4px 14px rgba(58, 124, 232, 0.28);
+}
+
+/* 共享底部吸附操作栏（用于保存按钮常驻可见） */
+.mr-sticky-actionbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  border-top: 1px solid var(--el-border-color-lighter);
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.mr-sticky-actionbar__inner {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  justify-content: center;
+}
+
+@supports not (backdrop-filter: blur(10px)) {
+  .mr-sticky-actionbar {
+    background: rgba(255, 255, 255, 0.92);
+  }
+}
+
+@media (max-width: 520px) {
+  .mr-sticky-actionbar__inner {
+    justify-content: stretch;
+  }
+  .settings-page-wrap .save-btn {
+    width: 100%;
+    min-width: 0;
+  }
 }
 
 @media (max-width: 900px) {

@@ -82,7 +82,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="settings-page-wrap" v-loading="loading">
+  <div class="settings-page-wrap has-sticky-actionbar" v-loading="loading">
     <div class="page-head mr-page-intro">
       <h1 class="mr-page-title">存储挂载</h1>
       <p class="mr-page-desc">挂载根目录与传输目标路径将作用于文件浏览与「文件传输」功能。</p>
@@ -127,10 +127,12 @@ onMounted(() => {
       </el-form>
     </el-card>
 
-    <div class="footer-actions">
-      <el-button type="primary" size="large" :loading="saving" class="save-btn" @click="saveStorage">
-        保存存储配置
-      </el-button>
+    <div class="mr-sticky-actionbar">
+      <div class="mr-sticky-actionbar__inner">
+        <el-button type="primary" size="large" :loading="saving" class="save-btn" @click="saveStorage">
+          保存存储配置
+        </el-button>
+      </div>
     </div>
   </div>
 </template>

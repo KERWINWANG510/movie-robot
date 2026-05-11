@@ -169,7 +169,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="settings-page-wrap" v-loading="loading">
+  <div class="settings-page-wrap has-sticky-actionbar" v-loading="loading">
     <div class="page-head mr-page-intro">
       <h1 class="mr-page-title">AI 服务</h1>
       <p class="mr-page-desc">配置大模型网关、模型与重命名说明；命名模式控制是否在重命名前必须预览确认。</p>
@@ -288,8 +288,10 @@ onMounted(() => {
       </div>
     </el-card>
 
-    <div class="footer-actions">
-      <el-button type="primary" size="large" :loading="saving" class="save-btn" @click="saveAi">保存 AI 配置</el-button>
+    <div class="mr-sticky-actionbar">
+      <div class="mr-sticky-actionbar__inner">
+        <el-button type="primary" size="large" :loading="saving" class="save-btn" @click="saveAi">保存 AI 配置</el-button>
+      </div>
     </div>
   </div>
 </template>
