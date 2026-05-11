@@ -58,3 +58,9 @@ async def _migrate_sqlite_schema() -> None:
                     "ALTER TABLE system_config ADD COLUMN ai_provider VARCHAR(64) NOT NULL DEFAULT 'custom'",
                 ),
             )
+        if "transfer_target_path" not in col_names:
+            await conn.execute(
+                text(
+                    "ALTER TABLE system_config ADD COLUMN transfer_target_path VARCHAR(1024) NOT NULL DEFAULT ''",
+                ),
+            )

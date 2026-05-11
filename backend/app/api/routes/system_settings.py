@@ -18,6 +18,7 @@ from app.schemas.system_settings import (
     SystemSettingsPublic,
 )
 from app.services.ai_providers import ALLOWED_PROVIDER_IDS, list_presets_public, resolve_effective_base_url
+from app.services.file_transfer import transfer_target_ready as _transfer_target_ready_flag
 from app.services.runtime_config import get_system_config_row, resolve_probe_base_url
 
 router = APIRouter(prefix="/settings", tags=["系统配置"])
@@ -50,8 +51,10 @@ def _row_to_public(row: SystemConfig | None) -> SystemSettingsPublic:
     ri = (getattr(row, "rename_instruction", "") or "") if row else ""
     ap = _normalize_ai_provider(getattr(row, "ai_provider", None) if row else None)
     eff_base = resolve_effective_base_url(ai_provider=ap, stored_custom_url=base)
+    ttp = (getattr(row, "transfer_target_path", "") or "") if row else ""
     return SystemSettingsPublic(
         mount_path=mount,
+        transfer_target_path=ttp,
         ai_provider=ap,
         openai_base_url=base,
         effective_openai_base_url=eff_base,
@@ -59,6 +62,7 @@ def _row_to_public(row: SystemConfig | None) -> SystemSettingsPublic:
         rename_instruction=ri,
         api_key_saved_in_db=key_in_db,
         mount_ready=_mount_ready(row),
+        transfer_target_ready=_transfer_target_ready_flag(ttp),
     )
 
 
@@ -83,6 +87,8 @@ async def patch_system_settings(
     data = body.model_dump(exclude_unset=True)
     if "mount_path" in data and data["mount_path"] is not None:
         row.mount_path = data["mount_path"].strip()
+    if "transfer_target_path" in data and data["transfer_target_path"] is not None:
+        row.transfer_target_path = data["transfer_target_path"].strip()
     if "ai_provider" in data and data["ai_provider"] is not None:
         row.ai_provider = _normalize_ai_provider(data["ai_provider"])
     if "openai_base_url" in data and data["openai_base_url"] is not None:

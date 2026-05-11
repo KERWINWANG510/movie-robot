@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CopyDocument, EditPen, Menu as IconMenu, Setting } from "@element-plus/icons-vue";
+import { CopyDocument, EditPen, Menu as IconMenu, Setting, Upload } from "@element-plus/icons-vue";
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
@@ -11,11 +11,12 @@ const route = useRoute();
 
 const drawerVisible = ref(false);
 
-type NavName = "rename" | "folder-merge" | "settings";
+type NavName = "rename" | "folder-merge" | "transfer" | "settings";
 
 const navItems = computed(() => [
   { name: "rename" as const, title: "文件重命名", icon: EditPen },
   { name: "folder-merge" as const, title: "文件夹合并", icon: CopyDocument },
+  { name: "transfer" as const, title: "文件传输", icon: Upload },
   { name: "settings" as const, title: "系统配置", icon: Setting },
 ]);
 
@@ -31,6 +32,7 @@ async function logout() {
 
 const activeMenu = computed(() => {
   if (route.name === "settings") return "settings";
+  if (route.name === "transfer") return "transfer";
   if (route.name === "folder-merge") return "folder-merge";
   return "rename";
 });
@@ -64,6 +66,10 @@ const activeMenu = computed(() => {
           <el-menu-item index="folder-merge" @click="go('folder-merge')">
             <el-icon><CopyDocument /></el-icon>
             <span>文件夹合并</span>
+          </el-menu-item>
+          <el-menu-item index="transfer" @click="go('transfer')">
+            <el-icon><Upload /></el-icon>
+            <span>文件传输</span>
           </el-menu-item>
           <el-menu-item index="settings" @click="go('settings')">
             <el-icon><Setting /></el-icon>

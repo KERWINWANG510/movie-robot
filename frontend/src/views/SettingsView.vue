@@ -24,6 +24,7 @@ const prefLoading = ref(false);
 
 const form = reactive({
   mount_path: "",
+  transfer_target_path: "",
   ai_provider: "custom",
   openai_base_url: "",
   openai_model: "",
@@ -67,6 +68,7 @@ async function loadSettings() {
   try {
     const { data } = await http.get<{
       mount_path: string;
+      transfer_target_path: string;
       ai_provider: string;
       openai_base_url: string;
       openai_model: string;
@@ -74,6 +76,7 @@ async function loadSettings() {
       api_key_saved_in_db: boolean;
     }>("/settings");
     form.mount_path = data.mount_path;
+    form.transfer_target_path = data.transfer_target_path ?? "";
     form.ai_provider = data.ai_provider || "custom";
     form.openai_base_url = data.openai_base_url;
     form.openai_model = data.openai_model;
@@ -95,6 +98,7 @@ async function saveAll() {
   try {
     const body: Record<string, string> = {
       mount_path: form.mount_path,
+      transfer_target_path: form.transfer_target_path,
       ai_provider: form.ai_provider,
       openai_model: form.openai_model,
       rename_instruction: form.rename_instruction,
@@ -206,6 +210,16 @@ onMounted(() => {
                 clearable
               />
               <div class="hint">须与实际映射到 NAS 的路径一致，保存后立即生效。</div>
+            </el-form-item>
+            <el-form-item label="传输目标目录">
+              <el-input
+                v-model="form.transfer_target_path"
+                placeholder="服务端绝对路径，例如 /backup/movie-out；可与挂载根不同，须为已存在的目录"
+                clearable
+              />
+              <div class="hint">
+                用于「文件传输」功能：将挂载目录中选中的文件或文件夹复制/剪切到此目录。路径写法与挂载根相同，均为服务端可见的绝对路径字符串。
+              </div>
             </el-form-item>
           </el-form>
         </el-card>

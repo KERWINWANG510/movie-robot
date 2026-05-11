@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -32,4 +34,22 @@ class FolderMergeResultItem(BaseModel):
 class FolderMergeResponse(BaseModel):
     results: list[FolderMergeResultItem]
     moved_count: int
+    failed_count: int
+
+
+class FileTransferRequest(BaseModel):
+    paths: list[str] = Field(..., min_length=1, description="相对挂载根的文件或目录路径，可多选")
+    mode: Literal["copy", "move"] = Field(..., description="复制或剪切（移动）")
+
+
+class FileTransferResultItem(BaseModel):
+    source_path: str
+    dest_path: str
+    ok: bool
+    message: str | None = None
+
+
+class FileTransferResponse(BaseModel):
+    results: list[FileTransferResultItem]
+    ok_count: int
     failed_count: int

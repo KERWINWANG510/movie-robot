@@ -35,6 +35,7 @@ async def ensure_system_config() -> None:
             SystemConfig(
                 id=1,
                 mount_path="",
+                transfer_target_path="",
                 ai_provider="custom",
                 openai_base_url="",
                 openai_api_key="",
