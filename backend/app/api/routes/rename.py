@@ -1,6 +1,7 @@
 import json
 from datetime import datetime, timedelta
 from pathlib import Path
+from pathlib import PurePosixPath
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -109,9 +110,20 @@ async def preview_rename(
 
     if valid_paths:
         try:
+            contexts: dict[str, dict[str, str]] = {}
+            for rel in valid_paths:
+                rp = PurePosixPath(rel.replace("\\", "/").lstrip("/"))
+                parent = rp.parent
+                parent_path = "" if str(parent) == "." else str(parent)
+                parent_dir = "" if parent_path == "" else parent.name
+                contexts[rel] = {
+                    "parent_dir": parent_dir,
+                    "parent_path": parent_path,
+                }
             suggestions = await suggest_filenames(
                 ai,
                 relative_paths=valid_paths,
+                contexts=contexts,
                 naming_hint=ai.rename_instruction or None,
             )
         except Exception as exc:

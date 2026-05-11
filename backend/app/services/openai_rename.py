@@ -10,6 +10,7 @@ async def suggest_filenames(
     ai: AiCallParams,
     *,
     relative_paths: list[str],
+    contexts: dict[str, dict[str, str]] | None = None,
     naming_hint: str | None = None,
 ) -> dict[str, str | None]:
     """
@@ -23,6 +24,7 @@ async def suggest_filenames(
 
     system = (
         "你是文件命名助手。用户会提供相对于根目录的文件路径列表。"
+        "每个路径可能还附带上下文信息（例如 parent_dir、parent_path），用于帮助你判断命名。"
         "请为每个文件输出 JSON 对象，键 path 为输入中的完整相对路径（逐字一致），"
         "键 suggested_name 为仅含文件名的建议新文件名（保留合理扩展名）。"
         "不要包含路径分隔符。非法字符替换为下划线。"
@@ -34,8 +36,16 @@ async def suggest_filenames(
             + hint_text
         )
 
+    safe_contexts: dict[str, dict[str, str]] = {}
+    if contexts:
+        for p in relative_paths:
+            ctx = contexts.get(p)
+            if isinstance(ctx, dict):
+                safe_contexts[p] = {str(k): str(v) for k, v in ctx.items()}
+
     user_payload = {
         "paths": relative_paths,
+        "contexts": safe_contexts,
         "rename_instruction": hint_text,
     }
     url = ai.openai_base_url.rstrip("/") + "/chat/completions"
