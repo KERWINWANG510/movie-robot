@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { CopyDocument, EditPen, Menu as IconMenu, Setting, Upload } from "@element-plus/icons-vue";
+import {
+  CopyDocument,
+  EditPen,
+  FolderOpened,
+  Menu as IconMenu,
+  Setting,
+  Upload,
+} from "@element-plus/icons-vue";
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
@@ -12,19 +19,32 @@ const route = useRoute();
 const drawerVisible = ref(false);
 
 /** 侧栏子菜单 index，须与模板中 el-sub-menu 的 index 一致 */
+const FILES_SUBMENU_INDEX = "files-submenu";
 const SETTINGS_SUBMENU_INDEX = "settings-submenu";
 
 type TopNavName = "rename" | "folder-merge" | "transfer";
 type MenuLeafIndex = TopNavName | "settings-storage" | "settings-ai";
 
+const isFilesBranch = computed(
+  () => route.name === "rename" || route.name === "folder-merge" || route.name === "transfer",
+);
+
 const isSettingsBranch = computed(
   () => route.name === "settings-storage" || route.name === "settings-ai",
 );
 
-/** 跨越「是否处于系统配置下」时重挂菜单，以便 default-openeds 在首次进入配置页时展开子菜单 */
-const sideMenuInstanceKey = computed(() => (isSettingsBranch.value ? "nav-settings" : "nav-top"));
+/** 跨越不同主导航分支时重挂菜单，以便 default-openeds 在首次进入时展开对应子菜单 */
+const sideMenuInstanceKey = computed(() => {
+  if (isSettingsBranch.value) return "nav-settings";
+  if (isFilesBranch.value) return "nav-files";
+  return "nav-top";
+});
 
-const submenuDefaultOpeneds = computed(() => (isSettingsBranch.value ? [SETTINGS_SUBMENU_INDEX] : []));
+const submenuDefaultOpeneds = computed(() => {
+  if (isSettingsBranch.value) return [SETTINGS_SUBMENU_INDEX];
+  if (isFilesBranch.value) return [FILES_SUBMENU_INDEX];
+  return [];
+});
 
 function goTop(name: TopNavName) {
   router.push({ name });
@@ -68,7 +88,7 @@ const activeMenu = computed(() => {
         <el-button class="menu-btn" text circle @click="drawerVisible = true">
           <el-icon :size="22"><IconMenu /></el-icon>
         </el-button>
-        <router-link to="/" class="logo">
+        <router-link to="/files" class="logo">
           <span class="logo-mark">MR</span>
           <span class="logo-text">智能文件重命名</span>
         </router-link>
@@ -87,18 +107,24 @@ const activeMenu = computed(() => {
           :default-openeds="submenuDefaultOpeneds"
           class="side-menu"
         >
-          <el-menu-item index="rename" @click="goTop('rename')">
-            <el-icon><EditPen /></el-icon>
-            <span>文件重命名</span>
-          </el-menu-item>
-          <el-menu-item index="folder-merge" @click="goTop('folder-merge')">
-            <el-icon><CopyDocument /></el-icon>
-            <span>文件夹合并</span>
-          </el-menu-item>
-          <el-menu-item index="transfer" @click="goTop('transfer')">
-            <el-icon><Upload /></el-icon>
-            <span>文件传输</span>
-          </el-menu-item>
+          <el-sub-menu :index="FILES_SUBMENU_INDEX">
+            <template #title>
+              <el-icon><FolderOpened /></el-icon>
+              <span>文件管理</span>
+            </template>
+            <el-menu-item index="rename" @click="goTop('rename')">
+              <el-icon><EditPen /></el-icon>
+              <span>文件重命名</span>
+            </el-menu-item>
+            <el-menu-item index="folder-merge" @click="goTop('folder-merge')">
+              <el-icon><CopyDocument /></el-icon>
+              <span>文件夹合并</span>
+            </el-menu-item>
+            <el-menu-item index="transfer" @click="goTop('transfer')">
+              <el-icon><Upload /></el-icon>
+              <span>文件传输</span>
+            </el-menu-item>
+          </el-sub-menu>
           <el-sub-menu :index="SETTINGS_SUBMENU_INDEX">
             <template #title>
               <el-icon><Setting /></el-icon>
@@ -122,18 +148,24 @@ const activeMenu = computed(() => {
         :default-openeds="submenuDefaultOpeneds"
         @select="onDrawerSelect"
       >
-        <el-menu-item index="rename">
-          <el-icon><EditPen /></el-icon>
-          <span>文件重命名</span>
-        </el-menu-item>
-        <el-menu-item index="folder-merge">
-          <el-icon><CopyDocument /></el-icon>
-          <span>文件夹合并</span>
-        </el-menu-item>
-        <el-menu-item index="transfer">
-          <el-icon><Upload /></el-icon>
-          <span>文件传输</span>
-        </el-menu-item>
+        <el-sub-menu :index="FILES_SUBMENU_INDEX">
+          <template #title>
+            <el-icon><FolderOpened /></el-icon>
+            <span>文件管理</span>
+          </template>
+          <el-menu-item index="rename">
+            <el-icon><EditPen /></el-icon>
+            <span>文件重命名</span>
+          </el-menu-item>
+          <el-menu-item index="folder-merge">
+            <el-icon><CopyDocument /></el-icon>
+            <span>文件夹合并</span>
+          </el-menu-item>
+          <el-menu-item index="transfer">
+            <el-icon><Upload /></el-icon>
+            <span>文件传输</span>
+          </el-menu-item>
+        </el-sub-menu>
         <el-sub-menu :index="SETTINGS_SUBMENU_INDEX">
           <template #title>
             <el-icon><Setting /></el-icon>

@@ -6,6 +6,7 @@ import HomeView from "../views/HomeView.vue";
 import LoginView from "../views/LoginView.vue";
 import SettingsAiView from "../views/SettingsAiView.vue";
 import SettingsStorageView from "../views/SettingsStorageView.vue";
+import NotFoundView from "../views/NotFoundView.vue";
 import TransferView from "../views/TransferView.vue";
 
 const router = createRouter({
@@ -16,9 +17,17 @@ const router = createRouter({
       path: "/",
       component: MainLayout,
       children: [
-        { path: "", name: "rename", component: HomeView },
-        { path: "merge", name: "folder-merge", component: HomeView },
-        { path: "transfer", name: "transfer", component: TransferView },
+        { path: "", redirect: "/files" },
+        {
+          path: "files",
+          component: RouterView,
+          redirect: { name: "rename" },
+          children: [
+            { path: "", name: "rename", component: HomeView },
+            { path: "merge", name: "folder-merge", component: HomeView },
+            { path: "transfer", name: "transfer", component: TransferView },
+          ],
+        },
         {
           path: "settings",
           component: RouterView,
@@ -29,6 +38,12 @@ const router = createRouter({
           ],
         },
       ],
+    },
+    {
+      path: "/:pathMatch(.*)*",
+      name: "not-found",
+      component: NotFoundView,
+      meta: { public: true },
     },
   ],
 });
