@@ -63,6 +63,32 @@ docker compose up -d --build
 
 4. 访问 `http://<主机>:8000`。公网访问建议在前面加 **HTTPS 反代**，并设置 `SESSION_HTTPS_ONLY=true`、正确的 `CORS_ORIGINS`。
 
+### GitHub Container Registry（CI 镜像）
+
+推送到 `main` 分支后，GitHub Actions 会使用仓库根目录 `Dockerfile` 自动构建并推送镜像到 **GHCR**。在 GitHub 仓库的 **Packages**（软件包）中可查看镜像与标签。
+
+在 NAS 或其他主机拉取时，镜像名为 `ghcr.io/<GitHub 用户名或组织的小写>/<仓库名小写>`，例如：
+
+```powershell
+docker pull ghcr.io/你的用户名小写/movie-robot:latest
+```
+
+#### 如何将镜像设为公开（所有人可见）
+
+GitHub 不会在推送镜像时自动公开 Package，须在网页上手动修改可见性。步骤：
+
+1. GitHub 右上角头像 → **Your repositories** → 或直接打开仓库 → 右侧 **Packages**，或在 Profile → **Packages** 中找到 `movie-robot`。  
+2. 进入包页面 → **Package settings**（左侧或齿轮图标）。  
+3. 滚动到 **Danger Zone** → **Change visibility** → 选择 **Public** → 确认。
+
+说明：仓库本身为私有也可以单独把 Package 设为 Public；匿名执行 `docker pull` 时镜像须为 Public。
+
+若仓库或 Package 为私有，匿名拉取会失败：请将对应 GitHub Package 设为对目标可见，或使用 PAT（含 `read:packages`）登录后再拉取：
+
+```powershell
+echo <你的PAT> | docker login ghcr.io -u <GitHub用户名> --password-stdin
+```
+
 ## 配置说明
 
 **挂载路径、OpenAI API 地址与密钥、模型、自然语言重命名说明** 均在登录后的 **系统配置** 页面填写并写入 SQLite，**不再从环境变量读取**。
