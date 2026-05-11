@@ -34,13 +34,25 @@ app.add_middleware(
     session_cookie=settings.session_cookie_name,
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origin_list,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+_cors_allow_list = settings.cors_origin_list
+if _cors_allow_list:
+    # 配置了来源列表：严格只允许列表内的 Origin
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_allow_list,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    # 未配置：不限制来源（允许任意 Origin）。注意：携带 Cookie 时不能用 "*"，因此用正则匹配并回显 Origin。
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=".*",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
