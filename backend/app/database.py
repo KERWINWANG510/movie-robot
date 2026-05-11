@@ -58,9 +58,22 @@ async def _migrate_sqlite_schema() -> None:
                     "ALTER TABLE system_config ADD COLUMN ai_provider VARCHAR(64) NOT NULL DEFAULT 'custom'",
                 ),
             )
-        if "transfer_target_path" not in col_names:
-            await conn.execute(
-                text(
-                    "ALTER TABLE system_config ADD COLUMN transfer_target_path VARCHAR(1024) NOT NULL DEFAULT ''",
-                ),
-            )
+        # 旧版「单一传输目标」列：迁移到 transfer_destination 表后删除（需 SQLite 3.35+）
+        r_td = await conn.execute(
+            text("SELECT name FROM sqlite_master WHERE type='table' AND name='transfer_destination'"),
+        )
+        if r_td.scalar_one_or_none() is not None and "transfer_target_path" in col_names:
+            rc = await conn.execute(text("SELECT COUNT(*) FROM transfer_destination"))
+            n_dest = int(rc.scalar_one())
+            if n_dest == 0:
+                r_old = await conn.execute(text("SELECT transfer_target_path FROM system_config WHERE id = 1"))
+                old_path = (r_old.scalar_one_or_none() or "").strip()
+                if old_path:
+                    await conn.execute(
+                        text(
+                            "INSERT INTO transfer_destination (label, path, sort_order, created_at) "
+                            "VALUES ('默认传输目标', :p, 0, CURRENT_TIMESTAMP)",
+                        ),
+                        {"p": old_path},
+                    )
+            await conn.execute(text("ALTER TABLE system_config DROP COLUMN transfer_target_path"))

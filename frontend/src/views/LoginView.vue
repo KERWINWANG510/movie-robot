@@ -39,10 +39,12 @@ async function submit() {
 
 <template>
   <div class="page">
-    <el-card class="card">
+    <div class="page-bg" aria-hidden="true" />
+    <el-card class="card" shadow="always">
       <template #header>
         <div class="hdr">
-          <span>{{ registerMode ? "注册账号" : "登录" }}</span>
+          <span class="hdr-title">{{ registerMode ? "注册账号" : "登录" }}</span>
+          <span class="hdr-sub">智能文件重命名</span>
         </div>
       </template>
       <el-form label-position="top" @submit.prevent="submit">
@@ -69,20 +71,59 @@ async function submit() {
 
 <style scoped>
 .page {
+  position: relative;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 20px;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
+
+.page-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(700px 420px at 18% 12%, rgba(58, 124, 232, 0.14), transparent 60%),
+    radial-gradient(560px 380px at 88% 78%, rgba(92, 184, 122, 0.1), transparent 55%),
+    linear-gradient(165deg, var(--mr-bg-page), #e4eaf3 100%);
+  pointer-events: none;
+}
+
 .card {
+  position: relative;
   width: min(420px, 100%);
+  border-radius: var(--mr-radius-lg);
+  border: 1px solid var(--mr-border-soft);
+  box-shadow: var(--mr-shadow-md);
 }
+
 .hdr {
-  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
+
+.hdr-title {
+  font-weight: 700;
+  font-size: 1.125rem;
+  letter-spacing: -0.02em;
+  color: var(--mr-text);
+}
+
+.hdr-sub {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--mr-text-muted);
+}
+
 .toggle {
   text-align: center;
+  padding-top: 4px;
+}
+
+.toggle :deep(.el-link) {
+  font-size: 13px;
 }
 </style>

@@ -40,6 +40,7 @@ class FolderMergeResponse(BaseModel):
 class FileTransferRequest(BaseModel):
     paths: list[str] = Field(..., min_length=1, description="相对挂载根的文件或目录路径，可多选")
     mode: Literal["copy", "move"] = Field(..., description="复制或剪切（移动）")
+    destination_id: int = Field(..., description="系统配置中的传输目标 id")
 
 
 class FileTransferResultItem(BaseModel):

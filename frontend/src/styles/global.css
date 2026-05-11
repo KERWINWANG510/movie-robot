@@ -1,0 +1,206 @@
+/**
+ * 全局设计令牌与基础样式（与 Element Plus 协同，避免大规模覆盖组件内部结构）
+ */
+:root {
+  color-scheme: light;
+
+  --mr-font-sans:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    "Noto Sans SC",
+    "PingFang SC",
+    "Microsoft YaHei",
+    sans-serif;
+
+  --mr-text: #0f172a;
+  --mr-text-secondary: #64748b;
+  --mr-text-muted: #94a3b8;
+
+  --mr-bg-page: #eef2f7;
+  --mr-bg-elevated: #ffffff;
+  --mr-border: rgba(148, 163, 184, 0.45);
+  --mr-border-soft: rgba(148, 163, 184, 0.28);
+
+  --mr-radius-sm: 8px;
+  --mr-radius-md: 12px;
+  --mr-radius-lg: 16px;
+
+  --mr-shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --mr-shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
+  --mr-shadow-md: 0 8px 28px rgba(15, 23, 42, 0.08);
+  --mr-shadow-nav: 0 1px 0 rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.06);
+
+  --mr-transition-fast: 0.18s ease;
+
+  /* 与默认 Element 蓝接近，略偏靛青、饱和度更克制 */
+  --el-color-primary: #3a7ce8;
+  --el-color-primary-light-3: #74a6f0;
+  --el-color-primary-light-5: #9fc0f5;
+  --el-color-primary-light-7: #c9daf9;
+  --el-color-primary-light-8: #dce7fc;
+  --el-color-primary-light-9: #eef4fe;
+  --el-color-primary-dark-2: #2f63c4;
+
+  --el-border-radius-base: 10px;
+  --el-border-radius-small: 8px;
+  --el-bg-color-page: var(--mr-bg-page);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--mr-font-sans);
+  background: var(--mr-bg-page);
+  color: var(--mr-text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 聚焦环：键盘导航更清晰，且不过度抢眼 */
+:focus-visible {
+  outline: 2px solid var(--el-color-primary-light-5);
+  outline-offset: 2px;
+}
+
+.el-button {
+  transition:
+    background-color var(--mr-transition-fast),
+    border-color var(--mr-transition-fast),
+    color var(--mr-transition-fast),
+    box-shadow var(--mr-transition-fast),
+    transform var(--mr-transition-fast);
+}
+
+.el-button--primary:not(.is-disabled):active {
+  transform: translateY(0.5px);
+}
+
+/* 卡片：统一圆角与轻阴影（shadow="never" 的卡片仍可有细腻描边感） */
+.el-card {
+  border-radius: var(--mr-radius-md);
+  border-color: var(--mr-border-soft);
+  box-shadow: var(--mr-shadow-xs);
+  transition:
+    box-shadow var(--mr-transition-fast),
+    border-color var(--mr-transition-fast);
+}
+
+.el-card.is-hover-shadow:hover,
+.el-card.is-always-shadow {
+  box-shadow: var(--mr-shadow-sm);
+}
+
+/* 表格在卡片内更干净 */
+.el-table {
+  --el-table-border-color: var(--mr-border-soft);
+}
+
+.el-table th.el-table__cell {
+  font-weight: 600;
+  color: var(--mr-text);
+  background-color: var(--el-fill-color-lighter) !important;
+}
+
+/* 抽屉标题区 */
+.nav-drawer.el-drawer .el-drawer__header {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  font-weight: 600;
+  color: var(--mr-text);
+}
+
+/* —— 页面复用工具类 —— */
+.mr-page-intro {
+  margin-bottom: 20px;
+}
+
+.mr-page-title {
+  margin: 0 0 8px;
+  font-size: clamp(1.25rem, 2.5vw, 1.375rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--mr-text);
+}
+
+.mr-page-desc {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--mr-text-secondary);
+  line-height: 1.6;
+  max-width: 72ch;
+}
+
+.mr-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--mr-text);
+}
+
+.mr-hint,
+.mr-tips {
+  font-size: 12px;
+  color: var(--mr-text-muted);
+  line-height: 1.55;
+}
+
+.mr-tips {
+  margin-top: 10px;
+}
+
+.mr-setup-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 32px 0 24px;
+}
+
+.mr-setup-card {
+  width: 100%;
+  max-width: 520px;
+  border-radius: var(--mr-radius-lg);
+}
+
+.mr-setup-inner {
+  padding: 8px 4px 4px;
+  text-align: center;
+}
+
+.mr-setup-desc {
+  margin: 0 0 24px;
+  font-size: 14px;
+  color: var(--mr-text-secondary);
+  line-height: 1.65;
+  text-align: left;
+}
+
+.mr-crumb {
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.mr-actions {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}

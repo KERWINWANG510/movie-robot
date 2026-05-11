@@ -295,7 +295,7 @@ async function runAutoPipeline() {
 }
 
 function goSettings() {
-  router.push({ name: "settings" });
+  router.push({ name: "settings-storage" });
 }
 
 watch(currentPath, () => {
@@ -315,15 +315,15 @@ const pageDesc = computed(() =>
 <template>
   <div class="home-page" v-loading="setupLoading">
     <template v-if="mountReady">
-      <div class="page-intro">
-        <h2 class="page-title">{{ pageTitle }}</h2>
-        <p class="page-desc">{{ pageDesc }}</p>
+      <div class="mr-page-intro">
+        <h2 class="mr-page-title">{{ pageTitle }}</h2>
+        <p class="mr-page-desc">{{ pageDesc }}</p>
       </div>
-      <el-row :gutter="16">
+      <el-row :gutter="18">
         <el-col :xs="24" :lg="14">
-          <el-card shadow="never">
+          <el-card class="panel-card" shadow="never">
             <template #header>
-              <div class="card-head">
+              <div class="mr-card-head">
                 <span>浏览挂载目录</span>
                 <el-button text type="primary" @click="goRoot">根目录</el-button>
                 <el-button text type="primary" :disabled="!currentPath" @click="goParent">上级</el-button>
@@ -331,7 +331,7 @@ const pageDesc = computed(() =>
               </div>
             </template>
 
-            <el-breadcrumb separator="/" class="crumb">
+            <el-breadcrumb separator="/" class="mr-crumb">
               <el-breadcrumb-item>
                 <el-link type="primary" @click="goRoot">root</el-link>
               </el-breadcrumb-item>
@@ -360,7 +360,7 @@ const pageDesc = computed(() =>
             </el-table>
 
             <template v-if="!mergeMode">
-              <div class="actions">
+              <div class="mr-actions">
                 <el-button type="primary" :loading="previewLoading" @click="runPreview">预览 AI 建议名</el-button>
                 <el-button
                   v-if="auth.user?.auto_rename_without_preview"
@@ -390,7 +390,7 @@ const pageDesc = computed(() =>
                   仅执行（已预览）
                 </el-button>
               </div>
-              <p class="tips">
+              <p class="mr-tips">
                 「预览确认」模式下需先预览；执行时会校验预览会话。全自动模式下可不强制预览会话，但仍建议先预览检查。
               </p>
             </template>
@@ -406,7 +406,7 @@ const pageDesc = computed(() =>
                   />
                   <el-button text type="primary" @click="useCurrentDirAsMergeTarget">使用当前目录</el-button>
                 </div>
-                <p class="tips merge-tips">
+                <p class="mr-tips merge-tips">
                   勾选两个或以上文件夹；各文件夹内所有层级的文件会移动到目标目录下（不保留子目录结构）。目标目录若不存在会自动创建。
                 </p>
                 <el-button type="warning" :loading="mergeLoading" :disabled="selectedPaths.length < 2" @click="runMerge">
@@ -418,9 +418,9 @@ const pageDesc = computed(() =>
         </el-col>
 
         <el-col :xs="24" :lg="10">
-          <el-card v-if="!mergeMode" shadow="never">
+          <el-card v-if="!mergeMode" class="panel-card" shadow="never">
             <template #header>
-              <span>预览与编辑</span>
+              <div class="mr-card-head"><span>预览与编辑</span></div>
             </template>
             <el-table :data="previewRows" size="small" max-height="420">
               <el-table-column label="原文件名" min-width="120" prop="original_name" show-overflow-tooltip />
@@ -432,9 +432,9 @@ const pageDesc = computed(() =>
               </el-table-column>
             </el-table>
           </el-card>
-          <el-card v-else shadow="never" class="merge-hint-card">
+          <el-card v-else shadow="never" class="panel-card merge-hint-card">
             <template #header>
-              <span>合并说明</span>
+              <div class="mr-card-head"><span>合并说明</span></div>
             </template>
             <ul class="merge-hint-list">
               <li>源文件夹不能互为父子关系（不要同时选外层与内层目录）。</li>
@@ -446,11 +446,11 @@ const pageDesc = computed(() =>
       </el-row>
     </template>
 
-    <div v-else-if="!setupLoading" class="setup-wrap">
-      <el-card class="setup-card" shadow="hover">
-        <div class="setup-inner">
-          <h2 class="page-title">请先配置挂载目录</h2>
-          <p class="setup-desc">
+    <div v-else-if="!setupLoading" class="mr-setup-wrap">
+      <el-card class="mr-setup-card" shadow="hover">
+        <div class="mr-setup-inner">
+          <h2 class="mr-page-title">请先配置挂载目录</h2>
+          <p class="mr-setup-desc">
             当前还没有可用的挂载根路径（路径不存在或不是文件夹）。请在系统配置中填写并保存「挂载根目录」，确保该路径在服务端可访问。
           </p>
           <el-button type="primary" size="large" @click="goSettings">
@@ -470,59 +470,18 @@ const pageDesc = computed(() =>
   min-height: 240px;
 }
 
-.page-intro {
-  margin-bottom: 16px;
+.panel-card {
+  border-radius: var(--mr-radius-md);
 }
 
-.page-title {
-  margin: 0 0 6px;
-  font-size: 20px;
-  font-weight: 700;
-  color: #303133;
-}
-
-.page-desc {
-  margin: 0;
-  font-size: 14px;
-  color: #909399;
-  line-height: 1.5;
-}
-
-.setup-wrap {
-  display: flex;
-  justify-content: center;
-  padding: 24px 0;
-}
-
-.setup-card {
-  width: 100%;
-  max-width: 520px;
-  border-radius: 14px;
-}
-
-.setup-inner {
-  padding: 12px 8px 8px;
-  text-align: center;
-}
-
-.setup-desc {
-  margin: 0 0 24px;
-  font-size: 14px;
-  color: #606266;
-  line-height: 1.65;
-  text-align: left;
+.panel-card :deep(.el-card__header) {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--el-border-color-extra-light);
 }
 
 .btn-ic {
   margin-right: 6px;
   vertical-align: middle;
-}
-
-.card-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
 }
 
 .merge-panel {
@@ -539,7 +498,7 @@ const pageDesc = computed(() =>
 
 .merge-label {
   font-size: 14px;
-  color: #606266;
+  color: var(--mr-text-secondary);
   flex-shrink: 0;
 }
 
@@ -556,7 +515,7 @@ const pageDesc = computed(() =>
   margin: 0;
   padding-left: 1.2em;
   font-size: 13px;
-  color: #606266;
+  color: var(--mr-text-secondary);
   line-height: 1.7;
 }
 
@@ -565,22 +524,6 @@ const pageDesc = computed(() =>
   background: var(--el-fill-color-light);
   padding: 1px 6px;
   border-radius: 4px;
-}
-.crumb {
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-.actions {
-  margin-top: 12px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.tips {
-  margin-top: 8px;
-  color: #909399;
-  font-size: 12px;
-  line-height: 1.5;
 }
 .err {
   color: var(--el-color-danger);

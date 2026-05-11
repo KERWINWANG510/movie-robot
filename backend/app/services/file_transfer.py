@@ -7,7 +7,7 @@ from typing import Literal
 from fastapi import HTTPException
 
 from app.services.folder_merge import uniquify_filename
-from app.services.path_security import PathNotAllowedError, resolve_under_root
+from app.services.path_security import PathNotAllowedError, ensure_path_str_no_parent_ref_segments, resolve_under_root
 
 TransferMode = Literal["copy", "move"]
 
@@ -17,6 +17,10 @@ def resolve_transfer_target_directory(raw: str | None) -> Path:
     s = (raw or "").strip()
     if not s:
         raise HTTPException(status_code=400, detail="请先在系统配置中填写传输目标目录")
+    try:
+        ensure_path_str_no_parent_ref_segments(s)
+    except PathNotAllowedError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     try:
         p = Path(s).expanduser().resolve()
     except OSError as exc:
@@ -32,6 +36,10 @@ def transfer_target_ready(raw: str | None) -> bool:
     """与 mount_ready 类似：配置非空且解析后为已存在目录则 True。"""
     s = (raw or "").strip()
     if not s:
+        return False
+    try:
+        ensure_path_str_no_parent_ref_segments(s)
+    except PathNotAllowedError:
         return False
     try:
         p = Path(s).expanduser().resolve()

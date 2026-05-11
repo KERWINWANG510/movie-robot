@@ -16,10 +16,15 @@ from app.schemas.system_settings import (
     ModelOption,
     SystemSettingsPatch,
     SystemSettingsPublic,
+    TransferDestinationPublic,
 )
 from app.services.ai_providers import ALLOWED_PROVIDER_IDS, list_presets_public, resolve_effective_base_url
-from app.services.file_transfer import transfer_target_ready as _transfer_target_ready_flag
 from app.services.runtime_config import get_system_config_row, resolve_probe_base_url
+from app.services.transfer_destinations import (
+    destination_ready_from_stored_path,
+    list_destinations_rows,
+    replace_all_destinations,
+)
 
 router = APIRouter(prefix="/settings", tags=["系统配置"])
 
@@ -42,7 +47,7 @@ def _mount_ready(row: SystemConfig | None) -> bool:
         return False
 
 
-def _row_to_public(row: SystemConfig | None) -> SystemSettingsPublic:
+async def _build_settings_public(db: AsyncSession, row: SystemConfig | None) -> SystemSettingsPublic:
     mount = (row.mount_path if row else "") or ""
     base = (row.openai_base_url if row else "") or ""
     model = (row.openai_model if row else "") or ""
@@ -51,10 +56,19 @@ def _row_to_public(row: SystemConfig | None) -> SystemSettingsPublic:
     ri = (getattr(row, "rename_instruction", "") or "") if row else ""
     ap = _normalize_ai_provider(getattr(row, "ai_provider", None) if row else None)
     eff_base = resolve_effective_base_url(ai_provider=ap, stored_custom_url=base)
-    ttp = (getattr(row, "transfer_target_path", "") or "") if row else ""
+    dest_rows = await list_destinations_rows(db)
+    dest_public = [
+        TransferDestinationPublic(
+            id=d.id,
+            label=d.label,
+            path=d.path,
+            ready=destination_ready_from_stored_path(d.path),
+        )
+        for d in dest_rows
+    ]
     return SystemSettingsPublic(
         mount_path=mount,
-        transfer_target_path=ttp,
+        transfer_destinations=dest_public,
         ai_provider=ap,
         openai_base_url=base,
         effective_openai_base_url=eff_base,
@@ -62,7 +76,6 @@ def _row_to_public(row: SystemConfig | None) -> SystemSettingsPublic:
         rename_instruction=ri,
         api_key_saved_in_db=key_in_db,
         mount_ready=_mount_ready(row),
-        transfer_target_ready=_transfer_target_ready_flag(ttp),
     )
 
 
@@ -72,7 +85,7 @@ async def get_system_settings(
     _user: User = Depends(get_current_user),
 ) -> SystemSettingsPublic:
     row = await get_system_config_row(db)
-    return _row_to_public(row)
+    return await _build_settings_public(db, row)
 
 
 @router.patch("", response_model=SystemSettingsPublic)
@@ -87,8 +100,10 @@ async def patch_system_settings(
     data = body.model_dump(exclude_unset=True)
     if "mount_path" in data and data["mount_path"] is not None:
         row.mount_path = data["mount_path"].strip()
-    if "transfer_target_path" in data and data["transfer_target_path"] is not None:
-        row.transfer_target_path = data["transfer_target_path"].strip()
+    if "transfer_destinations" in data:
+        tds = body.transfer_destinations
+        pairs = [(i.label, i.path) for i in (tds or [])]
+        await replace_all_destinations(db, pairs)
     if "ai_provider" in data and data["ai_provider"] is not None:
         row.ai_provider = _normalize_ai_provider(data["ai_provider"])
     if "openai_base_url" in data and data["openai_base_url"] is not None:
@@ -105,7 +120,7 @@ async def patch_system_settings(
             row.openai_api_key = val.strip()
     await db.commit()
     await db.refresh(row)
-    return _row_to_public(row)
+    return await _build_settings_public(db, row)
 
 
 @router.post("/models/list", response_model=ModelsListResponse)

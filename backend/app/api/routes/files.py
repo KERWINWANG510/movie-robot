@@ -17,6 +17,7 @@ from app.schemas.files import (
     FolderMergeResultItem,
 )
 from app.services.file_transfer import resolve_transfer_target_directory, transfer_paths_to_target
+from app.services.transfer_destinations import get_destination_by_id
 from app.services.folder_merge import merge_folder_trees_flat
 from app.services.path_security import PathNotAllowedError, resolve_under_root
 from app.services.runtime_config import effective_mount_root, get_system_config_row
@@ -117,8 +118,10 @@ async def transfer_files(
     except ValueError:
         raise HTTPException(status_code=400, detail="请先在系统配置中填写有效的挂载根目录") from None
 
-    raw_target = (cfg_row.transfer_target_path if cfg_row else "") or ""
-    transfer_dir = resolve_transfer_target_directory(raw_target)
+    dest = await get_destination_by_id(db, body.destination_id)
+    if dest is None:
+        raise HTTPException(status_code=404, detail="传输目标不存在，请先在系统配置中保存有效的传输目标")
+    transfer_dir = resolve_transfer_target_directory(dest.path)
 
     raw = transfer_paths_to_target(
         mount_root=root,

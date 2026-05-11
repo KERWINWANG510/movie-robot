@@ -20,12 +20,6 @@ class SystemConfig(Base):
         nullable=False,
         comment="挂载根目录路径；须在界面保存后方可浏览文件",
     )
-    transfer_target_path: Mapped[str] = mapped_column(
-        String(1024),
-        default="",
-        nullable=False,
-        comment="文件传输目标目录绝对路径；可与挂载根不同，留空则未配置",
-    )
     ai_provider: Mapped[str] = mapped_column(
         String(64),
         default="custom",

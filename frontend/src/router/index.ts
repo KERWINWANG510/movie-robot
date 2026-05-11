@@ -1,10 +1,11 @@
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHistory, RouterView } from "vue-router";
 
 import { useAuthStore } from "../stores/auth";
 import MainLayout from "../layouts/MainLayout.vue";
 import HomeView from "../views/HomeView.vue";
 import LoginView from "../views/LoginView.vue";
-import SettingsView from "../views/SettingsView.vue";
+import SettingsAiView from "../views/SettingsAiView.vue";
+import SettingsStorageView from "../views/SettingsStorageView.vue";
 import TransferView from "../views/TransferView.vue";
 
 const router = createRouter({
@@ -18,7 +19,15 @@ const router = createRouter({
         { path: "", name: "rename", component: HomeView },
         { path: "merge", name: "folder-merge", component: HomeView },
         { path: "transfer", name: "transfer", component: TransferView },
-        { path: "settings", name: "settings", component: SettingsView },
+        {
+          path: "settings",
+          component: RouterView,
+          redirect: { name: "settings-storage" },
+          children: [
+            { path: "storage", name: "settings-storage", component: SettingsStorageView },
+            { path: "ai", name: "settings-ai", component: SettingsAiView },
+          ],
+        },
       ],
     },
   ],
