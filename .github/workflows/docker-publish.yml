@@ -2,16 +2,8 @@ name: Docker Publish
 
 on:
   push:
-    branches:
-      - main
     tags:
       - "v*"
-  workflow_dispatch:
-    inputs:
-      release_tag:
-        description: "发版版本号（如 v1.2.0），与镜像 tag 及前端展示一致"
-        required: true
-        type: string
 
 permissions:
   contents: read
@@ -33,24 +25,12 @@ jobs:
       - name: Set build version and Docker tags
         run: |
           IMAGE="${{ env.IMAGE_NAME }}"
-          if [ "${{ github.ref_type }}" = "tag" ]; then
-            VER="${{ github.ref_name }}"
-          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VER="${{ github.event.inputs.release_tag }}"
-          else
-            short=$(echo "${{ github.sha }}" | cut -c1-7)
-            VER="${{ github.run_number }}-${short}"
-          fi
+          VER="${{ github.ref_name }}"
           echo "APP_VERSION=$VER" >> "$GITHUB_ENV"
           {
             echo "DOCKER_TAGS<<EOF"
-            if [ "${{ github.ref_type }}" = "tag" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-              echo "${IMAGE}:${VER}"
-              echo "${IMAGE}:latest"
-            else
-              echo "${IMAGE}:latest"
-              echo "${IMAGE}:main"
-            fi
+            echo "${IMAGE}:${VER}"
+            echo "${IMAGE}:latest"
             echo "EOF"
           } >> "$GITHUB_ENV"
 
