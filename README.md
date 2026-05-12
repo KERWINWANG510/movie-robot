@@ -65,16 +65,16 @@ docker compose up -d --build
 
 ### GitHub Container Registry（CI 镜像）
 
-推送到 `main` 分支后，GitHub Actions 会使用仓库根目录 `Dockerfile` 自动构建并推送镜像到 **GHCR**（标签为 `latest` 与 `main`，前端版本号为 `运行号-短SHA`）。在 GitHub 仓库的 **Packages**（软件包）中可查看镜像与标签。
+**仅当推送 Git tag（形如 `v*`）时**，GitHub Actions 会使用仓库根目录 `Dockerfile` 构建并推送镜像到 **GHCR**，标签为 **`vX.Y.Z`（与 tag 同名）** 与 **`latest`**；页面右上角版本与 **tag 名**一致。在 GitHub 仓库的 **Packages**（软件包）中可查看镜像与标签。
 
-**按 Git tag 发版（版本号与 tag 一致）**：推送形如 `v*` 的标签（例如 `v1.2.0`）时，会额外构建并推送 `ghcr.io/.../movie-robot:v1.2.0` 与 `latest`，且页面右上角版本与 **tag 名相同**。本地打标签示例：
+本地打标签并发版示例：
 
 ```bash
 git tag v1.2.0
 git push origin v1.2.0
 ```
 
-也可在 Actions 里手动运行 **Docker Publish**，填写输入项 **发版版本号**（如 `v1.2.0`），效果与打 tag 类似。
+合并到 `main` **不会**触发镜像构建。
 
 在 NAS 或其他主机拉取时，镜像名为 `ghcr.io/<GitHub 用户名或组织的小写>/<仓库名小写>`，例如：
 
