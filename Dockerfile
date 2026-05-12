@@ -1,5 +1,7 @@
-# 前端构建
+# 前端构建（构建参数 APP_VERSION 会写入前端 bundle，页面右上角展示）
 FROM node:22-alpine AS frontend-build
+ARG APP_VERSION=dev
+ENV VITE_APP_VERSION=$APP_VERSION
 WORKDIR /src/frontend
 COPY frontend/package.json ./
 RUN npm install

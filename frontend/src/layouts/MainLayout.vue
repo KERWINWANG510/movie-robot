@@ -10,6 +10,7 @@ import {
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+import { APP_VERSION } from "../appVersion";
 import { useAuthStore } from "../stores/auth";
 
 const auth = useAuthStore();
@@ -79,6 +80,8 @@ const activeMenu = computed(() => {
   if (route.name === "folder-merge") return "folder-merge";
   return "rename";
 });
+
+const displayVersion = APP_VERSION;
 </script>
 
 <template>
@@ -94,6 +97,7 @@ const activeMenu = computed(() => {
         </router-link>
       </div>
       <div class="top-right">
+        <span class="version-pill" :title="'构建版本：' + displayVersion">{{ displayVersion }}</span>
         <span v-if="auth.user" class="who">{{ auth.user.username }}</span>
         <el-button type="primary" plain size="small" @click="logout">退出</el-button>
       </div>
@@ -263,6 +267,21 @@ const activeMenu = computed(() => {
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
+}
+
+.version-pill {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--mr-text-secondary);
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--mr-border-soft);
+  background: color-mix(in srgb, var(--mr-bg-elevated) 92%, transparent);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .who {
