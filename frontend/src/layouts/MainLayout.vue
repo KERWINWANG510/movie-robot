@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import {
+  Connection,
   CopyDocument,
+  Cpu,
   EditPen,
   FolderOpened,
   Menu as IconMenu,
@@ -146,9 +148,18 @@ const displayVersion = APP_VERSION;
               <el-icon><Setting /></el-icon>
               <span>系统配置</span>
             </template>
-            <el-menu-item index="settings-storage" @click="goSettingsChild('settings-storage')">存储挂载</el-menu-item>
-            <el-menu-item index="settings-ai" @click="goSettingsChild('settings-ai')">AI 服务</el-menu-item>
-            <el-menu-item index="settings-open-api" @click="goSettingsChild('settings-open-api')">开放接口</el-menu-item>
+            <el-menu-item index="settings-storage" @click="goSettingsChild('settings-storage')">
+              <el-icon><FolderOpened /></el-icon>
+              <span>存储挂载</span>
+            </el-menu-item>
+            <el-menu-item index="settings-ai" @click="goSettingsChild('settings-ai')">
+              <el-icon><Cpu /></el-icon>
+              <span>AI 服务</span>
+            </el-menu-item>
+            <el-menu-item index="settings-open-api" @click="goSettingsChild('settings-open-api')">
+              <el-icon><Connection /></el-icon>
+              <span>开放接口</span>
+            </el-menu-item>
           </el-sub-menu>
         </el-menu>
       </aside>
@@ -188,9 +199,18 @@ const displayVersion = APP_VERSION;
             <el-icon><Setting /></el-icon>
             <span>系统配置</span>
           </template>
-          <el-menu-item index="settings-storage">存储挂载</el-menu-item>
-          <el-menu-item index="settings-ai">AI 服务</el-menu-item>
-          <el-menu-item index="settings-open-api">开放接口</el-menu-item>
+          <el-menu-item index="settings-storage">
+            <el-icon><FolderOpened /></el-icon>
+            <span>存储挂载</span>
+          </el-menu-item>
+          <el-menu-item index="settings-ai">
+            <el-icon><Cpu /></el-icon>
+            <span>AI 服务</span>
+          </el-menu-item>
+          <el-menu-item index="settings-open-api">
+            <el-icon><Connection /></el-icon>
+            <span>开放接口</span>
+          </el-menu-item>
         </el-sub-menu>
       </el-menu>
     </el-drawer>
