@@ -1,0 +1,27 @@
+---
+description: 业务变更涉及开放接口时必须同步更新 Open API 实现与文档
+alwaysApply: true
+---
+
+# 开放接口文档同步
+
+凡修改会影响对外调用的能力（合并、重命名、传输、浏览、传输目标、鉴权等），**必须在同一次改动中**保持 Open API 可用且文档一致，不得留作后续事项。
+
+## 何时必须同步
+
+- 新增 / 修改 / 删除 Open 路由（[`backend/app/api/routes/open_api.py`](backend/app/api/routes/open_api.py)）
+- 变更请求/响应 Schema、字段含义、必填性、错误语义（含 [`backend/app/schemas/`](backend/app/schemas/) 中被 Open 复用的模型）
+- 变更挂载路径规则、合并/传输/重命名业务逻辑，且 Open 接口行为随之变化
+- 变更 API Key 鉴权方式或管理接口
+
+## 同改必更清单
+
+1. **实现**：[`open_api.py`](backend/app/api/routes/open_api.py)（及所复用的 service）与 Web 端行为对齐，契约稳定优先
+2. **目录文档**：[`backend/app/services/open_api_catalog.py`](backend/app/services/open_api_catalog.py) — 更新对应端点的说明、`request_fields` / `response_fields`、notes、示例、错误说明；增删接口时同步增删 catalog 项
+3. **Schema 注解**：Pydantic `Field(description=...)` 与 catalog 字段说明一致（中文）
+4. **前端调试页**：若 catalog 结构变化，同步 [`SettingsOpenApiView.vue`](frontend/src/views/SettingsOpenApiView.vue) 的展示逻辑
+
+## 原则
+
+- 路径约定、鉴权头、相对挂载根等对外约定变更时，须在 catalog 的 `auth_notes` / 端点 `notes` 中写明
+- 禁止只改内部 UI 逻辑却让 Open 接口 silently 行为漂移且文档未更新

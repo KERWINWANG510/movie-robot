@@ -27,14 +27,17 @@ const FILES_SUBMENU_INDEX = "files-submenu";
 const SETTINGS_SUBMENU_INDEX = "settings-submenu";
 
 type TopNavName = "rename" | "folder-merge" | "transfer";
-type MenuLeafIndex = TopNavName | "settings-storage" | "settings-ai";
+type MenuLeafIndex = TopNavName | "settings-storage" | "settings-ai" | "settings-open-api";
 
 const isFilesBranch = computed(
   () => route.name === "rename" || route.name === "folder-merge" || route.name === "transfer",
 );
 
 const isSettingsBranch = computed(
-  () => route.name === "settings-storage" || route.name === "settings-ai",
+  () =>
+    route.name === "settings-storage" ||
+    route.name === "settings-ai" ||
+    route.name === "settings-open-api",
 );
 
 /** 跨越不同主导航分支时重挂菜单，以便 default-openeds 在首次进入时展开对应子菜单 */
@@ -54,7 +57,7 @@ function goTop(name: TopNavName) {
   router.push(fileRouteLocation(name));
 }
 
-function goSettingsChild(name: "settings-storage" | "settings-ai") {
+function goSettingsChild(name: "settings-storage" | "settings-ai" | "settings-open-api") {
   if (isFilesBranch.value) {
     prefs.setReturnTo(route.fullPath);
   }
@@ -68,7 +71,7 @@ function onDrawerSelect(index: string) {
     drawerVisible.value = false;
     return;
   }
-  if (leaf === "settings-storage" || leaf === "settings-ai") {
+  if (leaf === "settings-storage" || leaf === "settings-ai" || leaf === "settings-open-api") {
     if (isFilesBranch.value) prefs.setReturnTo(route.fullPath);
     router.push({ name: leaf });
     drawerVisible.value = false;
@@ -83,6 +86,7 @@ async function logout() {
 const activeMenu = computed(() => {
   if (route.name === "settings-storage") return "settings-storage";
   if (route.name === "settings-ai") return "settings-ai";
+  if (route.name === "settings-open-api") return "settings-open-api";
   if (route.name === "transfer") return "transfer";
   if (route.name === "folder-merge") return "folder-merge";
   return "rename";
@@ -144,6 +148,7 @@ const displayVersion = APP_VERSION;
             </template>
             <el-menu-item index="settings-storage" @click="goSettingsChild('settings-storage')">存储挂载</el-menu-item>
             <el-menu-item index="settings-ai" @click="goSettingsChild('settings-ai')">AI 服务</el-menu-item>
+            <el-menu-item index="settings-open-api" @click="goSettingsChild('settings-open-api')">开放接口</el-menu-item>
           </el-sub-menu>
         </el-menu>
       </aside>
@@ -185,6 +190,7 @@ const displayVersion = APP_VERSION;
           </template>
           <el-menu-item index="settings-storage">存储挂载</el-menu-item>
           <el-menu-item index="settings-ai">AI 服务</el-menu-item>
+          <el-menu-item index="settings-open-api">开放接口</el-menu-item>
         </el-sub-menu>
       </el-menu>
     </el-drawer>

@@ -2,10 +2,10 @@ from pydantic import BaseModel, Field
 
 
 class TransferDestinationPublic(BaseModel):
-    id: int
-    label: str
-    path: str
-    ready: bool = Field(description="路径存在且为目录时为 True")
+    id: int = Field(description="传输目标 id，传输接口 destination_id 使用此值")
+    label: str = Field(description="显示名称")
+    path: str = Field(description="服务端绝对路径")
+    ready: bool = Field(description="路径存在且为目录时为 True，仅 ready 的目标可用于传输")
 
 
 class TransferDestinationInput(BaseModel):

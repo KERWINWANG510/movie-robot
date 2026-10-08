@@ -5,6 +5,7 @@ import MainLayout from "../layouts/MainLayout.vue";
 import HomeView from "../views/HomeView.vue";
 import LoginView from "../views/LoginView.vue";
 import SettingsAiView from "../views/SettingsAiView.vue";
+import SettingsOpenApiView from "../views/SettingsOpenApiView.vue";
 import SettingsStorageView from "../views/SettingsStorageView.vue";
 import NotFoundView from "../views/NotFoundView.vue";
 import TransferView from "../views/TransferView.vue";
@@ -35,6 +36,7 @@ const router = createRouter({
           children: [
             { path: "storage", name: "settings-storage", component: SettingsStorageView },
             { path: "ai", name: "settings-ai", component: SettingsAiView },
+            { path: "open-api", name: "settings-open-api", component: SettingsOpenApiView },
           ],
         },
       ],
