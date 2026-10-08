@@ -11,9 +11,12 @@ import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { APP_VERSION } from "../appVersion";
+import { fileRouteLocation } from "../composables/useBrowsePath";
 import { useAuthStore } from "../stores/auth";
+import { useBrowsePrefsStore } from "../stores/browsePrefs";
 
 const auth = useAuthStore();
+const prefs = useBrowsePrefsStore();
 const router = useRouter();
 const route = useRoute();
 
@@ -48,21 +51,25 @@ const submenuDefaultOpeneds = computed(() => {
 });
 
 function goTop(name: TopNavName) {
-  router.push({ name });
+  router.push(fileRouteLocation(name));
 }
 
 function goSettingsChild(name: "settings-storage" | "settings-ai") {
+  if (isFilesBranch.value) {
+    prefs.setReturnTo(route.fullPath);
+  }
   router.push({ name });
 }
 
 function onDrawerSelect(index: string) {
   const leaf = index as MenuLeafIndex;
   if (leaf === "rename" || leaf === "folder-merge" || leaf === "transfer") {
-    router.push({ name: leaf });
+    router.push(fileRouteLocation(leaf));
     drawerVisible.value = false;
     return;
   }
   if (leaf === "settings-storage" || leaf === "settings-ai") {
+    if (isFilesBranch.value) prefs.setReturnTo(route.fullPath);
     router.push({ name: leaf });
     drawerVisible.value = false;
   }
@@ -91,10 +98,10 @@ const displayVersion = APP_VERSION;
         <el-button class="menu-btn" text circle @click="drawerVisible = true">
           <el-icon :size="22"><IconMenu /></el-icon>
         </el-button>
-        <router-link to="/files" class="logo">
+        <a href="#" class="logo" @click.prevent="goTop('rename')">
           <span class="logo-mark">MR</span>
           <span class="logo-text">智能文件重命名</span>
-        </router-link>
+        </a>
       </div>
       <div class="top-right">
         <span class="version-pill" :title="'构建版本：' + displayVersion">{{ displayVersion }}</span>

@@ -1,10 +1,16 @@
 <script setup lang="ts">
 import { Setting, Upload } from "@element-plus/icons-vue";
-import { ElMessage, ElMessageBox } from "element-plus";
-import { computed, ref, watch } from "vue";
-import { useRouter } from "vue-router";
+import { ElMessage, ElMessageBox, type TableInstance } from "element-plus";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 import http from "../api/http";
+import OpResultDialog, { type OpResultItem } from "../components/OpResultDialog.vue";
+import SetupChecklist from "../components/SetupChecklist.vue";
+import { useBrowsePath } from "../composables/useBrowsePath";
+import { useBrowsePrefsStore } from "../stores/browsePrefs";
+import { errMsg } from "../utils/errMsg";
+import { parentRelPath } from "../utils/path";
 
 type FileEntry = { name: string; path: string; is_dir: boolean };
 
@@ -15,44 +21,69 @@ type BrowseResponse = {
 
 type TransferDest = { id: number; label: string; path: string; ready: boolean };
 
-function errMsg(e: unknown): string {
-  if (typeof e === "object" && e !== null && "response" in e) {
-    const d = (e as { response?: { data?: { detail?: unknown } } }).response?.data?.detail;
-    if (typeof d === "string") return d;
-    if (Array.isArray(d)) return d.map((x) => JSON.stringify(x)).join("; ");
-  }
-  return "请求失败";
-}
-
 const router = useRouter();
+const route = useRoute();
+const prefs = useBrowsePrefsStore();
+const { currentPath, breadcrumbParts, setPath, hydrateFromStorage } = useBrowsePath();
 
 const mountReady = ref(false);
 const transferDestinations = ref<TransferDest[]>([]);
 const selectedDestinationId = ref<number | null>(null);
 const setupLoading = ref(true);
 
-const currentPath = ref("");
 const entries = ref<FileEntry[]>([]);
 const browseLoading = ref(false);
+const nameFilter = ref("");
+const typeFilter = ref<"all" | "file" | "dir">("all");
+const tableRef = ref<TableInstance>();
 
 const selectedPaths = ref<string[]>([]);
-const transferMode = ref<"copy" | "move">("copy");
 const transferLoading = ref(false);
 
-const breadcrumbParts = computed(() => {
-  if (!currentPath.value) return [];
-  return currentPath.value.split("/").filter(Boolean);
+const resultOpen = ref(false);
+const resultItems = ref<OpResultItem[]>([]);
+const resultCanRetry = ref(false);
+let lastTransferPayload: {
+  paths: string[];
+  mode: "copy" | "move";
+  destination_id: number;
+} | null = null;
+
+const filteredEntries = computed(() => {
+  const q = nameFilter.value.trim().toLowerCase();
+  return entries.value.filter((e) => {
+    if (prefs.hideDotfiles && e.name.startsWith(".")) return false;
+    if (typeFilter.value === "file" && e.is_dir) return false;
+    if (typeFilter.value === "dir" && !e.is_dir) return false;
+    if (q && !e.name.toLowerCase().includes(q)) return false;
+    return true;
+  });
 });
 
 const needMountSetup = computed(() => !mountReady.value);
 const hasAnyDestination = computed(() => transferDestinations.value.length > 0);
 const hasReadyDestination = computed(() => transferDestinations.value.some((d) => d.ready));
 
-const selectedDest = computed(() => transferDestinations.value.find((d) => d.id === selectedDestinationId.value) ?? null);
+const selectedDest = computed(
+  () => transferDestinations.value.find((d) => d.id === selectedDestinationId.value) ?? null,
+);
 
 const transferAllowed = computed(
   () => Boolean(selectedDest.value?.ready && selectedPaths.value.length > 0),
 );
+
+function pickDestination(list: TransferDest[]) {
+  const saved = prefs.savedTransferDestId;
+  if (saved != null) {
+    const hit = list.find((d) => d.id === saved && d.ready);
+    if (hit) {
+      selectedDestinationId.value = hit.id;
+      return;
+    }
+  }
+  const firstReady = list.find((d) => d.ready);
+  selectedDestinationId.value = firstReady?.id ?? list[0]?.id ?? null;
+}
 
 async function refreshSettingsAndBrowse() {
   setupLoading.value = true;
@@ -60,14 +91,9 @@ async function refreshSettingsAndBrowse() {
     const { data } = await http.get<{ mount_ready: boolean; transfer_destinations: TransferDest[] }>("/settings");
     mountReady.value = data.mount_ready;
     transferDestinations.value = data.transfer_destinations ?? [];
-    const firstReady = transferDestinations.value.find((d) => d.ready);
-    if (firstReady) {
-      selectedDestinationId.value = firstReady.id;
-    } else {
-      selectedDestinationId.value = transferDestinations.value[0]?.id ?? null;
-    }
-    currentPath.value = "";
+    pickDestination(transferDestinations.value);
     if (data.mount_ready) {
+      hydrateFromStorage();
       await loadBrowse();
     } else {
       entries.value = [];
@@ -92,12 +118,12 @@ async function loadBrowse() {
     });
     entries.value = data.entries;
     selectedPaths.value = [];
+    await nextTick();
+    tableRef.value?.clearSelection();
   } catch (e: unknown) {
     const msg = errMsg(e);
     ElMessage.error(msg);
-    if (msg.includes("不存在")) {
-      currentPath.value = "";
-    }
+    if (msg.includes("不存在")) setPath("");
   } finally {
     browseLoading.value = false;
   }
@@ -105,41 +131,60 @@ async function loadBrowse() {
 
 function enterDir(row: FileEntry) {
   if (!row.is_dir) return;
-  currentPath.value = row.path;
+  setPath(row.path);
+}
+
+function onRowDblClick(row: FileEntry) {
+  enterDir(row);
 }
 
 function goRoot() {
-  currentPath.value = "";
+  setPath("");
 }
 
 function goIndex(idx: number) {
-  const parts = breadcrumbParts.value.slice(0, idx + 1);
-  currentPath.value = parts.join("/");
+  setPath(breadcrumbParts.value.slice(0, idx + 1).join("/"));
 }
 
 function goParent() {
   if (!currentPath.value) return;
-  const parts = currentPath.value.split("/").filter(Boolean);
-  parts.pop();
-  currentPath.value = parts.join("/");
+  setPath(parentRelPath(currentPath.value));
 }
 
 function onSelectionChange(rows: FileEntry[]) {
   selectedPaths.value = rows.map((r) => r.path);
 }
 
+function selectAllVisible() {
+  const table = tableRef.value;
+  if (!table) return;
+  table.clearSelection();
+  for (const row of filteredEntries.value) {
+    table.toggleRowSelection(row, true);
+  }
+}
+
 function goSettings() {
+  prefs.setReturnTo(route.fullPath);
   router.push({ name: "settings-storage" });
 }
 
+function openTargetInBrowse() {
+  /* 传输目标是绝对路径，不一定在挂载根内；能做的是跳到重命名页并提示 */
+  ElMessage.info("传输目标为外部目录时无法在挂载浏览中打开；请在系统配置中查看目标路径。");
+}
+
 watch(currentPath, () => {
-  if (mountReady.value) {
-    loadBrowse();
-  }
+  if (mountReady.value) void loadBrowse();
 });
 
-async function runTransfer() {
-  if (selectedPaths.value.length === 0) {
+watch(selectedDestinationId, (id) => {
+  if (id != null) prefs.savedTransferDestId = id;
+});
+
+async function runTransfer(pathsOverride?: string[]) {
+  const paths = pathsOverride ?? selectedPaths.value;
+  if (paths.length === 0) {
     ElMessage.warning("请先勾选要传输的文件或文件夹");
     return;
   }
@@ -147,33 +192,49 @@ async function runTransfer() {
     ElMessage.warning("请选择一个可用的传输目标（路径须已存在且为目录）");
     return;
   }
-  const verb = transferMode.value === "copy" ? "复制" : "移动";
+  const mode = prefs.transferMode;
+  const verb = mode === "copy" ? "复制" : "移动";
   const label = selectedDest.value.label;
-  try {
-    await ElMessageBox.confirm(
-      `将把所选 ${selectedPaths.value.length} 项${verb}到「${label}」。目标侧重名会自动加 _1、_2 等后缀；目录整体传输时若重名则使用 foo_1 形式。是否继续？`,
-      `文件传输（${verb}）`,
-      { type: "warning", confirmButtonText: "开始传输", cancelButtonText: "取消" },
-    );
-  } catch {
-    return;
+  const skipConfirm = mode === "copy" && prefs.skipCopyConfirm;
+  if (!skipConfirm) {
+    try {
+      await ElMessageBox.confirm(
+        `将把所选 ${paths.length} 项${verb}到「${label}」。目标侧重名会自动加 _1、_2 等后缀；目录整体传输时若重名则使用 foo_1 形式。是否继续？`,
+        `文件传输（${verb}）`,
+        { type: "warning", confirmButtonText: "开始传输", cancelButtonText: "取消" },
+      );
+    } catch {
+      return;
+    }
   }
   transferLoading.value = true;
+  const payload = {
+    paths,
+    mode,
+    destination_id: selectedDestinationId.value,
+  };
   try {
     const { data } = await http.post<{
       results: { source_path: string; dest_path: string; ok: boolean; message: string | null }[];
       ok_count: number;
       failed_count: number;
-    }>("/files/transfer", {
-      paths: selectedPaths.value,
-      mode: transferMode.value,
-      destination_id: selectedDestinationId.value,
-    });
+    }>("/files/transfer", payload);
+    const items: OpResultItem[] = data.results.map((r, i) => ({
+      key: `${r.source_path}-${i}`,
+      source: r.source_path,
+      dest: r.dest_path,
+      ok: r.ok,
+      message: r.message,
+    }));
     if (data.failed_count === 0) {
       ElMessage.success(`已传输 ${data.ok_count} 项`);
     } else {
       ElMessage.warning(`完成：成功 ${data.ok_count}，失败 ${data.failed_count}`);
     }
+    lastTransferPayload = payload;
+    resultItems.value = items;
+    resultCanRetry.value = data.failed_count > 0;
+    resultOpen.value = true;
     selectedPaths.value = [];
     await loadBrowse();
   } catch (e: unknown) {
@@ -183,7 +244,33 @@ async function runTransfer() {
   }
 }
 
-refreshSettingsAndBrowse();
+async function onResultRetry(failed: OpResultItem[]) {
+  resultOpen.value = false;
+  if (!lastTransferPayload) return;
+  const paths = failed.map((f) => f.source);
+  await runTransfer(paths);
+}
+
+function onKeydown(ev: KeyboardEvent) {
+  const tag = (ev.target as HTMLElement | null)?.tagName;
+  const inField = tag === "INPUT" || tag === "TEXTAREA" || (ev.target as HTMLElement)?.isContentEditable;
+  if (ev.key === "Backspace" && !inField && !ev.metaKey && !ev.ctrlKey) {
+    if (currentPath.value) {
+      ev.preventDefault();
+      goParent();
+    }
+    return;
+  }
+  if ((ev.metaKey || ev.ctrlKey) && ev.key === "Enter" && transferAllowed.value) {
+    void runTransfer();
+  }
+}
+
+onMounted(() => {
+  window.addEventListener("keydown", onKeydown);
+  void refreshSettingsAndBrowse();
+});
+onUnmounted(() => window.removeEventListener("keydown", onKeydown));
 </script>
 
 <template>
@@ -197,6 +284,8 @@ refreshSettingsAndBrowse();
           </p>
         </div>
       </div>
+
+      <SetupChecklist context="transfer" />
 
       <el-alert v-if="!hasAnyDestination" type="warning" :closable="false" class="mb-alert" show-icon>
         <template #title>尚未配置传输目标</template>
@@ -243,14 +332,28 @@ refreshSettingsAndBrowse();
             </el-breadcrumb>
           </div>
 
+          <div class="browse-filters">
+            <el-input v-model="nameFilter" clearable placeholder="按名称过滤" class="filter-input" />
+            <el-radio-group v-model="typeFilter" size="small">
+              <el-radio-button value="all">全部</el-radio-button>
+              <el-radio-button value="file">仅文件</el-radio-button>
+              <el-radio-button value="dir">仅文件夹</el-radio-button>
+            </el-radio-group>
+            <el-checkbox v-model="prefs.hideDotfiles" size="small">隐藏点文件</el-checkbox>
+            <el-button size="small" @click="selectAllVisible">全选可见</el-button>
+          </div>
+
           <div class="mr-table-host">
             <el-table
-              :data="entries"
+              ref="tableRef"
+              :key="currentPath"
+              :data="filteredEntries"
               v-loading="browseLoading"
               row-key="path"
               height="100%"
               class="mr-file-table"
               @selection-change="onSelectionChange"
+              @row-dblclick="onRowDblClick"
             >
               <el-table-column type="selection" width="48" />
               <el-table-column label="名称" min-width="180">
@@ -284,16 +387,24 @@ refreshSettingsAndBrowse();
             </div>
             <div class="mode-row">
               <span class="mode-label">传输方式</span>
-              <el-radio-group v-model="transferMode">
+              <el-radio-group v-model="prefs.transferMode">
                 <el-radio-button value="copy">复制</el-radio-button>
                 <el-radio-button value="move">剪切</el-radio-button>
               </el-radio-group>
+              <el-checkbox
+                v-if="prefs.transferMode === 'copy'"
+                v-model="prefs.skipCopyConfirm"
+                size="small"
+              >
+                复制时跳过确认
+              </el-checkbox>
             </div>
             <div class="mr-actions" style="margin-top: 10px">
-              <el-button type="primary" :loading="transferLoading" :disabled="!transferAllowed" @click="runTransfer">
+              <el-button type="primary" :loading="transferLoading" :disabled="!transferAllowed" @click="runTransfer()">
                 <el-icon class="btn-ic"><Upload /></el-icon>
                 传输到所选目标
               </el-button>
+              <el-button text type="primary" @click="openTargetInBrowse">查看目标说明</el-button>
             </div>
             <p class="mr-tips">剪切会移动原路径；目标已存在同名项时自动使用 _1、_2 等后缀。</p>
           </div>
@@ -307,6 +418,7 @@ refreshSettingsAndBrowse();
             <li>传输目标在「系统配置 → 存储挂载」中维护，可配置多个。</li>
             <li>不能选择互为父子关系的路径。</li>
             <li>传输目标不能与挂载根相同，也不能落在所选源路径内部。</li>
+            <li>上次选择的目标与传输方式会自动记住。</li>
           </ul>
         </el-card>
       </div>
@@ -331,6 +443,14 @@ refreshSettingsAndBrowse();
         </div>
       </el-card>
     </div>
+
+    <OpResultDialog
+      v-model="resultOpen"
+      title="文件传输结果"
+      :results="resultItems"
+      :can-retry="resultCanRetry"
+      @retry="onResultRetry"
+    />
   </div>
 </template>
 
@@ -367,6 +487,19 @@ refreshSettingsAndBrowse();
 .btn-ic {
   margin-right: 6px;
   vertical-align: middle;
+}
+
+.browse-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 10px;
+}
+
+.filter-input {
+  width: 180px;
+  max-width: 100%;
 }
 
 .dest-select-row,
