@@ -189,16 +189,18 @@ refreshSettingsAndBrowse();
 <template>
   <div class="transfer-page" v-loading="setupLoading">
     <template v-if="mountReady">
-      <div class="mr-page-intro">
-        <h2 class="mr-page-title">文件传输</h2>
-        <p class="mr-page-desc">
-          在挂载目录中多选文件或文件夹，选择传输目标后复制或剪切到对应目录（可为挂载外的绝对路径）。名称冲突时自动加序号。
-        </p>
+      <div class="mr-page-intro is-compact">
+        <div>
+          <h2 class="mr-page-title">文件传输</h2>
+          <p class="mr-page-desc">
+            多选文件或文件夹，选择目标后复制 / 剪切到对应目录；名称冲突时自动加序号。
+          </p>
+        </div>
       </div>
 
       <el-alert v-if="!hasAnyDestination" type="warning" :closable="false" class="mb-alert" show-icon>
         <template #title>尚未配置传输目标</template>
-        请先在「系统配置 → 存储挂载」中添加至少一个传输目标（显示名称 + 服务端路径），保存后即可在此选择。
+        请先在「系统配置 → 存储挂载」中添加至少一个传输目标，保存后即可选择。
         <div class="alert-actions">
           <el-button type="primary" size="small" @click="goSettings">前往系统配置</el-button>
         </div>
@@ -211,24 +213,26 @@ refreshSettingsAndBrowse();
         show-icon
       >
         <template #title>当前没有可用的传输目标</template>
-        已配置的目录在服务端不存在或不可访问时不可用。请检查挂载、权限与路径是否正确，或与挂载根使用相同的路径写法。
+        已配置的目录在服务端不存在或不可访问。请检查挂载、权限与路径。
         <div class="alert-actions">
           <el-button type="primary" size="small" @click="goSettings">前往系统配置</el-button>
         </div>
       </el-alert>
 
-      <el-row :gutter="18">
-        <el-col :xs="24" :lg="16">
-          <el-card class="panel-card" shadow="never">
-            <template #header>
-              <div class="mr-card-head">
-                <span>浏览挂载目录</span>
-                <el-button text type="primary" @click="goRoot">根目录</el-button>
-                <el-button text type="primary" :disabled="!currentPath" @click="goParent">上级</el-button>
-                <el-button text type="primary" @click="loadBrowse">刷新</el-button>
-              </div>
-            </template>
+      <div class="mr-workbench">
+        <el-card class="panel-card" shadow="never">
+          <template #header>
+            <div class="mr-card-head">
+              <span>浏览挂载目录</span>
+              <span class="head-spacer" />
+              <span class="head-meta">已选 {{ selectedPaths.length }} 项</span>
+              <el-button text type="primary" @click="goRoot">根目录</el-button>
+              <el-button text type="primary" :disabled="!currentPath" @click="goParent">上级</el-button>
+              <el-button text type="primary" @click="loadBrowse">刷新</el-button>
+            </div>
+          </template>
 
+          <div class="mr-panel-toolbar">
             <el-breadcrumb separator="/" class="mr-crumb">
               <el-breadcrumb-item>
                 <el-link type="primary" @click="goRoot">root</el-link>
@@ -237,25 +241,29 @@ refreshSettingsAndBrowse();
                 <el-link type="primary" @click="goIndex(idx)">{{ p }}</el-link>
               </el-breadcrumb-item>
             </el-breadcrumb>
+          </div>
 
+          <div class="mr-table-host">
             <el-table
               :data="entries"
               v-loading="browseLoading"
               row-key="path"
-              height="360"
-              class="file-table"
+              height="100%"
+              class="mr-file-table"
               @selection-change="onSelectionChange"
             >
               <el-table-column type="selection" width="48" />
-              <el-table-column label="名称" min-width="160">
+              <el-table-column label="名称" min-width="180">
                 <template #default="{ row }">
                   <el-link v-if="row.is_dir" type="primary" @click="enterDir(row)">{{ row.name }}/</el-link>
                   <span v-else>{{ row.name }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="路径" prop="path" min-width="220" show-overflow-tooltip />
+              <el-table-column label="路径" prop="path" min-width="160" show-overflow-tooltip class-name="col-path" />
             </el-table>
+          </div>
 
+          <div class="mr-panel-footer">
             <div class="dest-select-row">
               <span class="mode-label">传输目标</span>
               <el-select
@@ -274,7 +282,6 @@ refreshSettingsAndBrowse();
                 />
               </el-select>
             </div>
-
             <div class="mode-row">
               <span class="mode-label">传输方式</span>
               <el-radio-group v-model="transferMode">
@@ -282,46 +289,45 @@ refreshSettingsAndBrowse();
                 <el-radio-button value="move">剪切</el-radio-button>
               </el-radio-group>
             </div>
-            <div class="mr-actions">
-              <el-button
-                type="primary"
-                :loading="transferLoading"
-                :disabled="!transferAllowed"
-                @click="runTransfer"
-              >
+            <div class="mr-actions" style="margin-top: 10px">
+              <el-button type="primary" :loading="transferLoading" :disabled="!transferAllowed" @click="runTransfer">
                 <el-icon class="btn-ic"><Upload /></el-icon>
                 传输到所选目标
               </el-button>
             </div>
-            <p class="mr-tips">剪切会移动原路径；若目标已存在同名文件或文件夹，将自动使用 _1、_2 等后缀避免覆盖。</p>
-          </el-card>
-        </el-col>
-        <el-col :xs="24" :lg="8">
-          <el-card shadow="never" class="panel-card hint-card">
-            <template #header>
-              <div class="mr-card-head"><span>说明</span></div>
-            </template>
-            <ul class="hint-list">
-              <li>传输目标在「系统配置 → 存储挂载」中维护，可配置多个；须为服务端可访问的绝对路径。</li>
-              <li>不能选择互为父子关系的路径（例如不要同时勾选文件夹与其中的项）。</li>
-              <li>传输目标不能与挂载根相同，也不能落在所选源路径内部。</li>
-            </ul>
-          </el-card>
-        </el-col>
-      </el-row>
+            <p class="mr-tips">剪切会移动原路径；目标已存在同名项时自动使用 _1、_2 等后缀。</p>
+          </div>
+        </el-card>
+
+        <el-card class="panel-card hint-card" shadow="never">
+          <template #header>
+            <div class="mr-card-head"><span>说明</span></div>
+          </template>
+          <ul class="hint-list">
+            <li>传输目标在「系统配置 → 存储挂载」中维护，可配置多个。</li>
+            <li>不能选择互为父子关系的路径。</li>
+            <li>传输目标不能与挂载根相同，也不能落在所选源路径内部。</li>
+          </ul>
+        </el-card>
+      </div>
     </template>
 
     <div v-else-if="!setupLoading && needMountSetup" class="mr-setup-wrap">
-      <el-card class="mr-setup-card" shadow="hover">
+      <el-card class="mr-setup-card" shadow="never">
         <div class="mr-setup-inner">
           <h2 class="mr-page-title">请先配置挂载目录</h2>
-          <p class="mr-setup-desc">
-            当前还没有可用的挂载根路径（路径不存在或不是文件夹）。请在系统配置中填写并保存「挂载根目录」，确保该路径在服务端可访问。
-          </p>
-          <el-button type="primary" size="large" @click="goSettings">
-            <el-icon class="btn-ic"><Setting /></el-icon>
-            前往系统配置
-          </el-button>
+          <p class="mr-setup-desc">配置挂载根与传输目标后，即可在此浏览并传输文件。</p>
+          <ol class="mr-setup-steps">
+            <li>打开「系统配置 → 存储挂载」</li>
+            <li>填写挂载根目录，并添加至少一个传输目标</li>
+            <li>返回本页选择文件并传输</li>
+          </ol>
+          <div class="mr-setup-actions">
+            <el-button type="primary" size="large" @click="goSettings">
+              <el-icon class="btn-ic"><Setting /></el-icon>
+              前往系统配置
+            </el-button>
+          </div>
         </div>
       </el-card>
     </div>
@@ -330,13 +336,12 @@ refreshSettingsAndBrowse();
 
 <style scoped>
 .transfer-page {
-  max-width: 1280px;
-  margin: 0 auto;
-  min-height: 240px;
+  width: 100%;
+  min-height: 100%;
 }
 
 .mb-alert {
-  margin-bottom: 18px;
+  margin-bottom: 12px;
   border-radius: var(--mr-radius-md);
 }
 
@@ -345,16 +350,18 @@ refreshSettingsAndBrowse();
 }
 
 .alert-actions {
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 .panel-card {
   border-radius: var(--mr-radius-md);
+  border: 1px solid var(--mr-border-soft);
 }
 
 .panel-card :deep(.el-card__header) {
-  padding: 14px 18px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--el-border-color-extra-light);
+  background: var(--color-muted);
 }
 
 .btn-ic {
@@ -362,34 +369,28 @@ refreshSettingsAndBrowse();
   vertical-align: middle;
 }
 
-.dest-select-row {
-  margin-top: 14px;
+.dest-select-row,
+.mode-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-}
-
-.dest-select {
-  flex: 1 1 220px;
-  min-width: 200px;
+  gap: 10px;
 }
 
 .mode-row {
-  margin-top: 14px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
+  margin-top: 10px;
+}
+
+.dest-select {
+  flex: 1 1 200px;
+  min-width: 180px;
 }
 
 .mode-label {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--mr-text-secondary);
-}
-
-.file-table {
-  width: 100%;
+  flex-shrink: 0;
+  min-width: 4.5em;
 }
 
 .hint-card .hint-list {
@@ -400,9 +401,9 @@ refreshSettingsAndBrowse();
   line-height: 1.7;
 }
 
-@media (max-width: 992px) {
-  .file-table {
-    height: auto !important;
+@media (max-width: 720px) {
+  .panel-card :deep(.col-path) {
+    display: none;
   }
 }
 </style>

@@ -49,8 +49,8 @@ onBeforeUnmount(() => {
   justify-content: center;
   padding: 24px 16px;
   background:
-    radial-gradient(900px 420px at 50% -10%, rgba(58, 124, 232, 0.12), transparent 55%),
-    linear-gradient(165deg, var(--mr-bg-page) 0%, #e8edf4 100%);
+    radial-gradient(720px 400px at 50% -10%, rgba(13, 148, 136, 0.14), transparent 55%),
+    var(--mr-bg-page);
 }
 
 .not-found-card {
@@ -61,7 +61,6 @@ onBeforeUnmount(() => {
   border-radius: var(--mr-radius-lg);
   background: var(--mr-bg-elevated);
   border: 1px solid var(--mr-border-soft);
-  box-shadow: var(--mr-shadow-md);
 }
 
 .code {
@@ -69,10 +68,7 @@ onBeforeUnmount(() => {
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.04em;
-  background: linear-gradient(135deg, var(--el-color-primary), #5cb87a);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--el-color-primary);
   margin-bottom: 12px;
 }
 
@@ -80,6 +76,7 @@ onBeforeUnmount(() => {
   margin: 0 0 10px;
   font-size: 22px;
   font-weight: 700;
+  letter-spacing: -0.03em;
   color: var(--mr-text);
 }
 

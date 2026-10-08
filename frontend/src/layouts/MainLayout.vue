@@ -105,6 +105,7 @@ const displayVersion = APP_VERSION;
 
     <div class="body">
       <aside class="side-desktop" aria-label="主导航">
+        <div class="side-label">功能</div>
         <el-menu
           :key="sideMenuInstanceKey"
           :default-active="activeMenu"
@@ -185,27 +186,23 @@ const displayVersion = APP_VERSION;
 
 <style scoped>
 .app-shell {
-  min-height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(58, 124, 232, 0.09), transparent 55%),
-    radial-gradient(900px 480px at 100% 0%, rgba(103, 194, 58, 0.06), transparent 50%),
-    linear-gradient(165deg, var(--mr-bg-page) 0%, #e8edf4 48%, var(--mr-bg-page) 100%);
+  overflow: hidden;
+  background: var(--mr-bg-page);
 }
 
 .top-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px 12px 10px;
-  background: color-mix(in srgb, var(--mr-bg-elevated) 88%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  height: 56px;
+  padding: 0 16px 0 8px;
+  background: var(--mr-bg-elevated);
   border-bottom: 1px solid var(--mr-border-soft);
-  box-shadow: var(--mr-shadow-nav);
-  position: sticky;
-  top: 0;
+  flex-shrink: 0;
   z-index: 20;
 }
 
@@ -219,6 +216,8 @@ const displayVersion = APP_VERSION;
 .menu-btn {
   display: none;
   color: var(--mr-text-secondary);
+  min-width: 44px;
+  min-height: 44px;
   transition: color var(--mr-transition-fast), background-color var(--mr-transition-fast);
 }
 
@@ -234,38 +233,43 @@ const displayVersion = APP_VERSION;
   text-decoration: none;
   color: inherit;
   min-width: 0;
+  cursor: pointer;
+  transition: opacity var(--mr-transition-fast);
+}
+
+.logo:hover {
+  opacity: 0.9;
 }
 
 .logo-mark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 11px;
-  background: linear-gradient(135deg, var(--el-color-primary) 0%, #4f8ff0 45%, #5cb87a 100%);
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--el-color-primary);
   color: #fff;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12px;
   letter-spacing: -0.5px;
   flex-shrink: 0;
-  box-shadow: 0 4px 14px rgba(58, 124, 232, 0.35);
 }
 
 .logo-text {
-  font-weight: 600;
-  font-size: 16px;
+  font-weight: 700;
+  font-size: 15px;
   color: var(--mr-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
 .top-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
@@ -274,11 +278,11 @@ const displayVersion = APP_VERSION;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--mr-text-secondary);
-  padding: 4px 10px;
-  border-radius: 999px;
+  padding: 3px 8px;
+  border-radius: 6px;
   border: 1px solid var(--mr-border-soft);
-  background: color-mix(in srgb, var(--mr-bg-elevated) 92%, transparent);
-  max-width: 160px;
+  background: var(--color-muted);
+  max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -286,49 +290,59 @@ const displayVersion = APP_VERSION;
 
 .who {
   font-size: 13px;
+  font-weight: 500;
   color: var(--mr-text-secondary);
-  max-width: 140px;
+  max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--el-fill-color-light);
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--color-muted);
 }
 
 .body {
   flex: 1;
   display: flex;
-  max-width: 1320px;
+  min-height: 0;
   width: 100%;
-  margin: 0 auto;
-  box-sizing: border-box;
 }
 
 .side-desktop {
-  width: 228px;
+  width: 216px;
   flex-shrink: 0;
-  padding: 20px 0 20px 14px;
+  padding: 14px 10px 16px;
+  background: var(--mr-bg-elevated);
+  border-right: 1px solid var(--mr-border-soft);
+  overflow-y: auto;
+}
+
+.side-label {
+  padding: 0 10px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mr-text-muted);
 }
 
 .side-menu {
-  border-radius: var(--mr-radius-md);
-  border: 1px solid var(--mr-border-soft);
-  overflow: hidden;
-  box-shadow: var(--mr-shadow-sm);
-  --el-menu-bg-color: var(--mr-bg-elevated);
-  padding: 6px;
+  border: none;
+  border-right: none;
+  background: transparent;
+  --el-menu-bg-color: transparent;
+  --el-menu-hover-bg-color: var(--el-color-primary-light-9);
 }
 
 .side-menu :deep(.el-menu-item) {
   border-radius: var(--mr-radius-sm);
   margin: 2px 0;
-  height: 44px;
-  line-height: 44px;
+  height: 42px;
+  line-height: 42px;
+  cursor: pointer;
   transition:
     background-color var(--mr-transition-fast),
-    color var(--mr-transition-fast),
-    transform var(--mr-transition-fast);
+    color var(--mr-transition-fast);
 }
 
 .side-menu :deep(.el-menu-item:hover) {
@@ -336,8 +350,8 @@ const displayVersion = APP_VERSION;
 }
 
 .side-menu :deep(.el-menu-item.is-active) {
-  color: var(--el-color-primary) !important;
-  background: linear-gradient(90deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8)) !important;
+  color: var(--el-color-primary-dark-2) !important;
+  background: var(--el-color-primary-light-8) !important;
   font-weight: 600;
 }
 
@@ -348,8 +362,9 @@ const displayVersion = APP_VERSION;
 .side-menu :deep(.el-sub-menu__title) {
   border-radius: var(--mr-radius-sm);
   margin: 2px 0;
-  height: 44px;
-  line-height: 44px;
+  height: 42px;
+  line-height: 42px;
+  cursor: pointer;
   transition:
     background-color var(--mr-transition-fast),
     color var(--mr-transition-fast);
@@ -365,17 +380,22 @@ const displayVersion = APP_VERSION;
 }
 
 .side-menu :deep(.el-sub-menu.is-active > .el-sub-menu__title) {
-  color: var(--el-color-primary);
+  color: var(--el-color-primary-dark-2);
   font-weight: 600;
+}
+
+.main-pane {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 16px 20px 24px;
 }
 
 .nav-drawer :deep(.el-sub-menu__title) {
   border-radius: var(--mr-radius-sm);
   margin: 4px 8px;
   width: auto;
-  transition:
-    background-color var(--mr-transition-fast),
-    color var(--mr-transition-fast);
+  cursor: pointer;
 }
 
 .nav-drawer :deep(.el-sub-menu .el-menu-item) {
@@ -384,14 +404,8 @@ const displayVersion = APP_VERSION;
 }
 
 .nav-drawer :deep(.el-sub-menu.is-active > .el-sub-menu__title) {
-  color: var(--el-color-primary);
+  color: var(--el-color-primary-dark-2);
   font-weight: 600;
-}
-
-.main-pane {
-  flex: 1;
-  min-width: 0;
-  padding: 20px 20px 28px;
 }
 
 .nav-drawer :deep(.el-menu) {
@@ -404,14 +418,13 @@ const displayVersion = APP_VERSION;
   border-radius: var(--mr-radius-sm);
   margin: 4px 8px;
   width: auto;
-  transition:
-    background-color var(--mr-transition-fast),
-    color var(--mr-transition-fast);
+  min-height: 44px;
+  cursor: pointer;
 }
 
 .nav-drawer :deep(.el-menu-item.is-active) {
-  background: var(--el-color-primary-light-9) !important;
-  color: var(--el-color-primary) !important;
+  background: var(--el-color-primary-light-8) !important;
+  color: var(--el-color-primary-dark-2) !important;
   font-weight: 600;
 }
 
@@ -426,10 +439,13 @@ const displayVersion = APP_VERSION;
     font-size: 14px;
   }
   .main-pane {
-    padding: 14px 14px 22px;
+    padding: 12px 12px 20px;
   }
   .top-bar {
-    padding: 10px 14px 10px 6px;
+    padding: 0 12px 0 4px;
+  }
+  .version-pill {
+    display: none;
   }
 }
 </style>
