@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
@@ -11,6 +11,7 @@ from app.models.user import User
 from app.schemas.system_settings import (
     AiProviderOption,
     AiProvidersListResponse,
+    HostDirBrowseResponse,
     ModelsListResponse,
     ModelsProbeRequest,
     ModelOption,
@@ -18,6 +19,7 @@ from app.schemas.system_settings import (
     SystemSettingsPublic,
     TransferDestinationPublic,
 )
+from app.services.host_dirs import list_host_directories
 from app.services.ai_providers import ALLOWED_PROVIDER_IDS, list_presets_public, resolve_effective_base_url
 from app.services.runtime_config import get_system_config_row, resolve_probe_base_url
 from app.services.transfer_destinations import (
@@ -197,3 +199,12 @@ async def list_ai_provider_presets(
     return AiProvidersListResponse(
         providers=[AiProviderOption(**p) for p in list_presets_public()],
     )
+
+
+@router.get("/host-dirs", response_model=HostDirBrowseResponse)
+async def browse_host_directories(
+    path: str = Query("", description="绝对路径；空表示列出盘符或 /"),
+    _user: User = Depends(get_current_user),
+) -> HostDirBrowseResponse:
+    """列出服务端本机/容器内的文件夹，供配置挂载根与传输目标时选择。"""
+    return list_host_directories(path)

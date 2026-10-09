@@ -74,3 +74,13 @@ class ModelOption(BaseModel):
 
 class ModelsListResponse(BaseModel):
     models: list[ModelOption]
+
+
+class HostDirEntry(BaseModel):
+    name: str = Field(description="目录显示名")
+    path: str = Field(description="服务端绝对路径，可直接填入挂载根或传输目标")
+
+
+class HostDirBrowseResponse(BaseModel):
+    path: str = Field(description="当前目录绝对路径；空表示根级（盘符或 /）")
+    entries: list[HostDirEntry] = Field(default_factory=list, description="当前目录下的子文件夹")

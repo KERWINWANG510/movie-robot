@@ -7,6 +7,10 @@ class FileEntry(BaseModel):
     name: str = Field(description="文件或文件夹名称")
     path: str = Field(description="相对挂载根的完整相对路径")
     is_dir: bool = Field(description="是否为目录；true 为文件夹，false 为文件")
+    size: int | None = Field(
+        default=None,
+        description="文件大小（字节）；文件夹为 null（不递归统计）",
+    )
 
 
 class BrowseResponse(BaseModel):

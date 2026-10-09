@@ -12,9 +12,10 @@ import { useBrowsePath } from "../composables/useBrowsePath";
 import { useAuthStore } from "../stores/auth";
 import { useBrowsePrefsStore } from "../stores/browsePrefs";
 import { errMsg } from "../utils/errMsg";
+import { formatBytes } from "../utils/formatBytes";
 import { parentRelPath } from "../utils/path";
 
-type FileEntry = { name: string; path: string; is_dir: boolean };
+type FileEntry = { name: string; path: string; is_dir: boolean; size?: number | null };
 
 type BrowseResponse = {
   path: string;
@@ -540,6 +541,11 @@ const pageDesc = computed(() =>
                   <span v-else>{{ row.name }}</span>
                 </template>
               </el-table-column>
+              <el-table-column label="大小" width="100" align="right" class-name="col-size">
+                <template #default="{ row }">
+                  <span class="size-cell">{{ row.is_dir ? "—" : formatBytes(row.size) }}</span>
+                </template>
+              </el-table-column>
               <el-table-column label="路径" prop="path" min-width="160" show-overflow-tooltip class-name="col-path" />
             </el-table>
           </div>
@@ -792,6 +798,12 @@ const pageDesc = computed(() =>
 
 .err {
   color: var(--el-color-danger);
+}
+
+.size-cell {
+  font-variant-numeric: tabular-nums;
+  color: var(--mr-text-secondary);
+  font-size: 13px;
 }
 
 @media (max-width: 720px) {

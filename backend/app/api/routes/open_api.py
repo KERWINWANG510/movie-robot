@@ -134,7 +134,15 @@ async def open_browse(
                 full_rel = _rel_from_root(root, child.resolve())
             except ValueError:
                 continue
-            entries.append(FileEntry(name=child.name, path=full_rel, is_dir=child.is_dir()))
+            size: int | None = None
+            if not child.is_dir():
+                try:
+                    size = int(child.stat().st_size)
+                except OSError:
+                    size = None
+            entries.append(
+                FileEntry(name=child.name, path=full_rel, is_dir=child.is_dir(), size=size)
+            )
     except PermissionError as exc:
         raise HTTPException(status_code=403, detail="没有权限读取该目录") from exc
 

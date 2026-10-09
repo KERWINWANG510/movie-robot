@@ -161,6 +161,7 @@ def build_open_api_catalog() -> OpenApiCatalogResponse:
                 "path 留空或省略表示挂载根。",
                 "返回的 entries[].path 为相对挂载根的完整相对路径，可直接用于后续 merge / rename / transfer。",
                 "不递归列出子目录内容，需自行进入下一级再调本接口。",
+                "entries[].size 仅对文件返回字节数；文件夹为 null（不做递归容量统计）。",
             ],
             headers=[_AUTH_HEADER],
             query_params=[
@@ -202,14 +203,26 @@ def build_open_api_catalog() -> OpenApiCatalogResponse:
                             required=True,
                             example=True,
                         ),
+                        _f(
+                            "size",
+                            "integer|null",
+                            "文件大小（字节）；文件夹为 null，不递归统计目录容量",
+                            required=False,
+                            example=1048576,
+                        ),
                     ],
                 ),
             ],
             response_example={
                 "path": "downloads",
                 "entries": [
-                    {"name": "电影", "path": "downloads/电影", "is_dir": True},
-                    {"name": "a.mkv", "path": "downloads/a.mkv", "is_dir": False},
+                    {"name": "电影", "path": "downloads/电影", "is_dir": True, "size": None},
+                    {
+                        "name": "a.mkv",
+                        "path": "downloads/a.mkv",
+                        "is_dir": False,
+                        "size": 1048576,
+                    },
                 ],
             },
             error_codes=_COMMON_ERRORS,

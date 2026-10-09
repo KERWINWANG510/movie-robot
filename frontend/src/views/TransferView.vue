@@ -10,9 +10,10 @@ import SetupChecklist from "../components/SetupChecklist.vue";
 import { useBrowsePath } from "../composables/useBrowsePath";
 import { useBrowsePrefsStore } from "../stores/browsePrefs";
 import { errMsg } from "../utils/errMsg";
+import { formatBytes } from "../utils/formatBytes";
 import { parentRelPath } from "../utils/path";
 
-type FileEntry = { name: string; path: string; is_dir: boolean };
+type FileEntry = { name: string; path: string; is_dir: boolean; size?: number | null };
 
 type BrowseResponse = {
   path: string;
@@ -40,6 +41,24 @@ const tableRef = ref<TableInstance>();
 const selectedPaths = ref<string[]>([]);
 const transferLoading = ref(false);
 
+const progressOpen = ref(false);
+const progressDone = ref(0);
+const progressTotal = ref(0);
+const progressCurrent = ref("");
+const progressUnit = ref<"bytes" | "items">("bytes");
+const progressPercent = computed(() => {
+  if (progressTotal.value <= 0) return 0;
+  return Math.min(100, Math.round((progressDone.value / progressTotal.value) * 100));
+});
+
+const progressMetaText = computed(() => {
+  if (progressTotal.value <= 0) return "准备中…";
+  if (progressUnit.value === "bytes") {
+    return `${formatBytes(progressDone.value)} / ${formatBytes(progressTotal.value)}`;
+  }
+  return `${progressDone.value} / ${progressTotal.value}`;
+});
+
 const resultOpen = ref(false);
 const resultItems = ref<OpResultItem[]>([]);
 const resultCanRetry = ref(false);
@@ -48,6 +67,100 @@ let lastTransferPayload: {
   mode: "copy" | "move";
   destination_id: number;
 } | null = null;
+
+type StreamEvent = {
+  event: string;
+  done?: number;
+  total?: number;
+  current?: string;
+  unit?: "bytes" | "items";
+  message?: string;
+  results?: { source_path: string; dest_path: string; ok: boolean; message: string | null }[];
+  ok_count?: number;
+  failed_count?: number;
+};
+
+async function transferWithoutStream(payload: {
+  paths: string[];
+  mode: "copy" | "move";
+  destination_id: number;
+}): Promise<StreamEvent> {
+  const { data } = await http.post<{
+    results: { source_path: string; dest_path: string; ok: boolean; message: string | null }[];
+    ok_count: number;
+    failed_count: number;
+  }>("/files/transfer", payload);
+  progressDone.value = progressTotal.value > 0 ? progressTotal.value : 1;
+  progressTotal.value = progressTotal.value > 0 ? progressTotal.value : 1;
+  return {
+    event: "done",
+    results: data.results,
+    ok_count: data.ok_count,
+    failed_count: data.failed_count,
+  };
+}
+
+async function consumeTransferStream(payload: {
+  paths: string[];
+  mode: "copy" | "move";
+  destination_id: number;
+}): Promise<StreamEvent> {
+  const res = await fetch("/api/v1/files/transfer/stream", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json", Accept: "application/x-ndjson" },
+    body: JSON.stringify(payload),
+  });
+  if (res.status === 404) {
+    return transferWithoutStream(payload);
+  }
+  if (!res.ok) {
+    let detail = `传输失败（${res.status}）`;
+    try {
+      const j = (await res.json()) as { detail?: unknown };
+      if (typeof j.detail === "string") detail = j.detail;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(detail);
+  }
+  if (!res.body) throw new Error("浏览器不支持流式读取传输进度");
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  let doneEv: StreamEvent | null = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const lines = buf.split("\n");
+    buf = lines.pop() ?? "";
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      const ev = JSON.parse(trimmed) as StreamEvent;
+      if (ev.event === "start" || ev.event === "progress" || ev.event === "complete") {
+        if (typeof ev.total === "number") progressTotal.value = ev.total;
+        if (typeof ev.done === "number") progressDone.value = ev.done;
+        if (typeof ev.current === "string") progressCurrent.value = ev.current;
+        if (ev.unit === "bytes" || ev.unit === "items") progressUnit.value = ev.unit;
+      } else if (ev.event === "error") {
+        throw new Error(ev.message || "传输失败");
+      } else if (ev.event === "done") {
+        doneEv = ev;
+      }
+    }
+  }
+  if (buf.trim()) {
+    const ev = JSON.parse(buf.trim()) as StreamEvent;
+    if (ev.event === "error") throw new Error(ev.message || "传输失败");
+    if (ev.event === "done") doneEv = ev;
+  }
+  if (!doneEv) throw new Error("传输未返回完整结果");
+  return doneEv;
+}
 
 const filteredEntries = computed(() => {
   const q = nameFilter.value.trim().toLowerCase();
@@ -208,38 +321,43 @@ async function runTransfer(pathsOverride?: string[]) {
     }
   }
   transferLoading.value = true;
+  progressDone.value = 0;
+  progressTotal.value = 0;
+  progressCurrent.value = "";
+  progressUnit.value = "bytes";
+  progressOpen.value = true;
   const payload = {
     paths,
     mode,
     destination_id: selectedDestinationId.value,
   };
   try {
-    const { data } = await http.post<{
-      results: { source_path: string; dest_path: string; ok: boolean; message: string | null }[];
-      ok_count: number;
-      failed_count: number;
-    }>("/files/transfer", payload);
-    const items: OpResultItem[] = data.results.map((r, i) => ({
+    const data = await consumeTransferStream(payload);
+    const results = data.results ?? [];
+    const okCount = data.ok_count ?? results.filter((r) => r.ok).length;
+    const failedCount = data.failed_count ?? results.filter((r) => !r.ok).length;
+    const items: OpResultItem[] = results.map((r, i) => ({
       key: `${r.source_path}-${i}`,
       source: r.source_path,
       dest: r.dest_path,
       ok: r.ok,
       message: r.message,
     }));
-    if (data.failed_count === 0) {
-      ElMessage.success(`已传输 ${data.ok_count} 项`);
+    if (failedCount === 0) {
+      ElMessage.success(`已传输 ${okCount} 项`);
     } else {
-      ElMessage.warning(`完成：成功 ${data.ok_count}，失败 ${data.failed_count}`);
+      ElMessage.warning(`完成：成功 ${okCount}，失败 ${failedCount}`);
     }
     lastTransferPayload = payload;
     resultItems.value = items;
-    resultCanRetry.value = data.failed_count > 0;
+    resultCanRetry.value = failedCount > 0;
     resultOpen.value = true;
     selectedPaths.value = [];
     await loadBrowse();
   } catch (e: unknown) {
-    ElMessage.error(errMsg(e));
+    ElMessage.error(e instanceof Error ? e.message : errMsg(e));
   } finally {
+    progressOpen.value = false;
     transferLoading.value = false;
   }
 }
@@ -362,6 +480,11 @@ onUnmounted(() => window.removeEventListener("keydown", onKeydown));
                   <span v-else>{{ row.name }}</span>
                 </template>
               </el-table-column>
+              <el-table-column label="大小" width="100" align="right" class-name="col-size">
+                <template #default="{ row }">
+                  <span class="size-cell">{{ row.is_dir ? "—" : formatBytes(row.size) }}</span>
+                </template>
+              </el-table-column>
               <el-table-column label="路径" prop="path" min-width="160" show-overflow-tooltip class-name="col-path" />
             </el-table>
           </div>
@@ -443,6 +566,23 @@ onUnmounted(() => window.removeEventListener("keydown", onKeydown));
         </div>
       </el-card>
     </div>
+
+    <el-dialog
+      v-model="progressOpen"
+      title="正在传输"
+      width="420px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :show-close="false"
+      append-to-body
+      class="transfer-progress-dialog"
+    >
+      <el-progress :percentage="progressPercent" :stroke-width="14" striped striped-flow />
+      <p class="progress-meta">{{ progressMetaText }}</p>
+      <p v-if="progressCurrent" class="progress-current" :title="progressCurrent">
+        {{ progressCurrent }}
+      </p>
+    </el-dialog>
 
     <OpResultDialog
       v-model="resultOpen"
@@ -532,6 +672,29 @@ onUnmounted(() => window.removeEventListener("keydown", onKeydown));
   font-size: 13px;
   color: var(--mr-text-secondary);
   line-height: 1.7;
+}
+
+.progress-meta {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--mr-text-secondary);
+  text-align: center;
+}
+
+.progress-current {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--mr-text-secondary);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.size-cell {
+  font-variant-numeric: tabular-nums;
+  color: var(--mr-text-secondary);
+  font-size: 13px;
 }
 
 @media (max-width: 720px) {

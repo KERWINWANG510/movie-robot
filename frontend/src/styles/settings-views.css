@@ -47,8 +47,17 @@
   background: var(--el-color-primary-light-8);
 }
 
+.settings-page-wrap .nice-form :deep(.el-form-item) {
+  margin-bottom: 22px;
+}
+
 .settings-page-wrap .nice-form :deep(.el-form-item__label) {
   font-weight: 500;
+  line-height: 1.5;
+  height: auto !important;
+  overflow: visible;
+  margin-bottom: 8px !important;
+  padding: 0;
 }
 
 .settings-page-wrap .hint {
@@ -73,11 +82,25 @@
 }
 
 .settings-page-wrap .dest-label {
-  flex: 0 0 140px;
-  min-width: 120px;
+  flex: 1 1 200px;
+  min-width: 160px;
+  max-width: 280px;
 }
 
 .settings-page-wrap .dest-path {
+  flex: 2 1 240px;
+  min-width: 180px;
+}
+
+.settings-page-wrap .path-pick-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.settings-page-wrap .path-pick-row .el-input {
   flex: 1 1 220px;
   min-width: 180px;
 }

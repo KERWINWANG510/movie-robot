@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+  ArrowDown,
   Connection,
   CopyDocument,
   Cpu,
@@ -114,6 +115,10 @@ async function logout() {
   await router.replace({ name: "login" });
 }
 
+async function onUserCommand(cmd: string | number) {
+  if (cmd === "logout") await logout();
+}
+
 const activeMenu = computed(() => {
   if (route.name === "settings-storage") return "settings-storage";
   if (route.name === "settings-ai") return "settings-ai";
@@ -142,9 +147,20 @@ const displayVersion = APP_VERSION;
         </a>
       </div>
       <div class="top-right">
-        <span class="version-pill" :title="'构建版本：' + displayVersion">{{ displayVersion }}</span>
-        <span v-if="auth.user" class="who">{{ auth.user.username }}</span>
-        <el-button type="primary" plain size="small" @click="logout">退出</el-button>
+        <el-dropdown trigger="click" @command="onUserCommand">
+          <button type="button" class="user-trigger" :title="auth.user?.username || '账户'">
+            <span class="user-trigger-name">{{ auth.user?.username || "账户" }}</span>
+            <el-icon class="user-trigger-caret"><ArrowDown /></el-icon>
+          </button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item disabled class="user-menu-version">
+                版本 {{ displayVersion }}
+              </el-dropdown-item>
+              <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
     </header>
 
@@ -370,36 +386,47 @@ const displayVersion = APP_VERSION;
 .top-right {
   display: flex;
   align-items: center;
-  gap: 8px;
   flex-shrink: 0;
 }
 
-.version-pill {
-  font-size: 12px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--mr-text-secondary);
-  padding: 3px 8px;
-  border-radius: 6px;
+.user-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 160px;
+  margin: 0;
+  padding: 5px 10px;
   border: 1px solid var(--mr-border-soft);
+  border-radius: 8px;
   background: var(--color-muted);
-  max-width: 120px;
+  color: var(--mr-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.user-trigger:hover {
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-color-primary-light-9);
+}
+
+.user-trigger-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.who {
-  font-size: 13px;
-  font-weight: 500;
+.user-trigger-caret {
+  flex-shrink: 0;
+  font-size: 12px;
   color: var(--mr-text-secondary);
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 3px 8px;
-  border-radius: 6px;
-  background: var(--color-muted);
+}
+
+.user-menu-version {
+  font-variant-numeric: tabular-nums;
+  cursor: default !important;
 }
 
 .body {
@@ -551,8 +578,8 @@ const displayVersion = APP_VERSION;
   .top-bar {
     padding: 0 12px 0 4px;
   }
-  .version-pill {
-    display: none;
+  .user-trigger {
+    max-width: 120px;
   }
 }
 </style>

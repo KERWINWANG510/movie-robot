@@ -5,6 +5,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import http from "../api/http";
+import HostDirPickerDialog from "../components/HostDirPickerDialog.vue";
 import "../styles/settings-views.css";
 import { useBrowsePrefsStore } from "../stores/browsePrefs";
 import { settingsErrMsg } from "../utils/settingsHttp";
@@ -28,6 +29,25 @@ const form = reactive({
 
 type DestFormRow = { label: string; path: string };
 const transferDestinations = ref<DestFormRow[]>([{ label: "", path: "" }]);
+
+const pickerOpen = ref(false);
+const pickerInitial = ref("");
+const pickerTarget = ref<"mount" | number>("mount");
+
+function openPicker(target: "mount" | number) {
+  pickerTarget.value = target;
+  pickerInitial.value = target === "mount" ? form.mount_path : transferDestinations.value[target]?.path || "";
+  pickerOpen.value = true;
+}
+
+function onPicked(path: string) {
+  if (pickerTarget.value === "mount") {
+    form.mount_path = path;
+  } else {
+    const row = transferDestinations.value[pickerTarget.value];
+    if (row) row.path = path;
+  }
+}
 
 function addDestRow() {
   transferDestinations.value.push({ label: "", path: "" });
@@ -109,23 +129,27 @@ onMounted(() => {
       </template>
       <el-form label-position="top" class="nice-form">
         <el-form-item label="挂载根目录">
-          <el-input
-            v-model="form.mount_path"
-            placeholder="例如容器内 /data 或与 NAS 映射一致的本机路径"
-            clearable
-          />
-          <div class="hint">须与实际映射到 NAS 的路径一致，保存后立即生效。</div>
+          <div class="path-pick-row">
+            <el-input
+              v-model="form.mount_path"
+              placeholder="例如容器内 /data 或与 NAS 映射一致的本机路径"
+              clearable
+            />
+            <el-button @click="openPicker('mount')">浏览目录</el-button>
+          </div>
+          <div class="hint">可浏览服务端（容器）内已有文件夹并选择；须与实际映射到 NAS 的路径一致，保存后立即生效。</div>
         </el-form-item>
         <el-form-item label="传输目标（可多选）">
           <div class="dest-list">
             <div v-for="(row, idx) in transferDestinations" :key="idx" class="dest-row">
-              <el-input v-model="row.label" placeholder="显示名称，例如 电影、电视剧" clearable class="dest-label" />
+              <el-input v-model="row.label" placeholder="显示名称（如：电影）" clearable class="dest-label" />
               <el-input
                 v-model="row.path"
                 placeholder="服务端绝对路径，例如 /backup/movies"
                 clearable
                 class="dest-path"
               />
+              <el-button @click="openPicker(idx)">浏览</el-button>
               <el-button type="danger" plain :disabled="transferDestinations.length <= 1" @click="removeDestRow(idx)">
                 删除
               </el-button>
@@ -147,5 +171,7 @@ onMounted(() => {
         </el-button>
       </div>
     </div>
+
+    <HostDirPickerDialog v-model="pickerOpen" :initial-path="pickerInitial" @confirm="onPicked" />
   </div>
 </template>
