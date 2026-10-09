@@ -56,6 +56,7 @@ async def _build_settings_public(db: AsyncSession, row: SystemConfig | None) -> 
     ri = (getattr(row, "rename_instruction", "") or "") if row else ""
     ap = _normalize_ai_provider(getattr(row, "ai_provider", None) if row else None)
     eff_base = resolve_effective_base_url(ai_provider=ap, stored_custom_url=base)
+    tmdb_key = (getattr(row, "tmdb_api_key", "") or "") if row else ""
     dest_rows = await list_destinations_rows(db)
     dest_public = [
         TransferDestinationPublic(
@@ -75,6 +76,7 @@ async def _build_settings_public(db: AsyncSession, row: SystemConfig | None) -> 
         openai_model=model,
         rename_instruction=ri,
         api_key_saved_in_db=key_in_db,
+        tmdb_api_key_saved_in_db=bool(tmdb_key.strip()),
         mount_ready=_mount_ready(row),
     )
 
@@ -118,6 +120,12 @@ async def patch_system_settings(
             pass
         else:
             row.openai_api_key = val.strip()
+    if "tmdb_api_key" in data:
+        val = data["tmdb_api_key"]
+        if val is None:
+            pass
+        else:
+            row.tmdb_api_key = val.strip()
     await db.commit()
     await db.refresh(row)
     return await _build_settings_public(db, row)

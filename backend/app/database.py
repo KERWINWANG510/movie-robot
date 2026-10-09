@@ -58,6 +58,12 @@ async def _migrate_sqlite_schema() -> None:
                     "ALTER TABLE system_config ADD COLUMN ai_provider VARCHAR(64) NOT NULL DEFAULT 'custom'",
                 ),
             )
+        if "tmdb_api_key" not in col_names:
+            await conn.execute(
+                text(
+                    "ALTER TABLE system_config ADD COLUMN tmdb_api_key VARCHAR(512) NOT NULL DEFAULT ''",
+                ),
+            )
         # 旧版「单一传输目标」列：迁移到 transfer_destination 表后删除（需 SQLite 3.35+）
         r_td = await conn.execute(
             text("SELECT name FROM sqlite_master WHERE type='table' AND name='transfer_destination'"),
@@ -77,3 +83,13 @@ async def _migrate_sqlite_schema() -> None:
                         {"p": old_path},
                     )
             await conn.execute(text("ALTER TABLE system_config DROP COLUMN transfer_target_path"))
+
+        # 开放接口令牌：补充有效期列（空=永久）
+        r_tok = await conn.execute(
+            text("SELECT name FROM sqlite_master WHERE type='table' AND name='api_access_token'"),
+        )
+        if r_tok.scalar_one_or_none() is not None:
+            r_tok_cols = await conn.execute(text("PRAGMA table_info(api_access_token)"))
+            tok_cols = [row[1] for row in r_tok_cols.fetchall()]
+            if "expires_at" not in tok_cols:
+                await conn.execute(text("ALTER TABLE api_access_token ADD COLUMN expires_at DATETIME"))

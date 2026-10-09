@@ -40,32 +40,46 @@ async function submit() {
 <template>
   <div class="page">
     <div class="page-bg" aria-hidden="true" />
-    <el-card class="card" shadow="always">
-      <template #header>
-        <div class="hdr">
-          <span class="hdr-title">{{ registerMode ? "注册账号" : "登录" }}</span>
-          <span class="hdr-sub">智能文件重命名</span>
-        </div>
-      </template>
-      <el-form label-position="top" @submit.prevent="submit">
-        <el-form-item label="用户名">
-          <el-input v-model="form.username" autocomplete="username" />
-        </el-form-item>
-        <el-form-item label="密码">
-          <el-input v-model="form.password" type="password" autocomplete="current-password" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" native-type="submit" :loading="loading" style="width: 100%">
-            {{ registerMode ? "注册并登录" : "登录" }}
-          </el-button>
-        </el-form-item>
-        <div class="toggle">
-          <el-link type="primary" @click="registerMode = !registerMode">
-            {{ registerMode ? "已有账号？去登录" : "首次部署？尝试注册（若管理员未关闭）" }}
-          </el-link>
-        </div>
-      </el-form>
-    </el-card>
+    <div class="login-stage">
+      <div class="brand-block">
+        <div class="brand-mark" aria-hidden="true">MR</div>
+        <h1 class="brand-name">智能文件重命名</h1>
+        <p class="brand-tagline">在 NAS 挂载目录中浏览文件，用 AI 生成规范文件名</p>
+      </div>
+
+      <el-card class="card" shadow="never">
+        <template #header>
+          <div class="hdr">
+            <span class="hdr-title">{{ registerMode ? "注册账号" : "登录" }}</span>
+            <span class="hdr-sub">{{ registerMode ? "创建首个管理员账号" : "使用账号继续" }}</span>
+          </div>
+        </template>
+        <el-form label-position="top" @submit.prevent="submit">
+          <el-form-item label="用户名">
+            <el-input v-model="form.username" autocomplete="username" size="large" />
+          </el-form-item>
+          <el-form-item label="密码">
+            <el-input
+              v-model="form.password"
+              type="password"
+              autocomplete="current-password"
+              size="large"
+              show-password
+            />
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" native-type="submit" :loading="loading" size="large" class="submit-btn">
+              {{ registerMode ? "注册并登录" : "登录" }}
+            </el-button>
+          </el-form-item>
+          <div class="toggle">
+            <el-link type="primary" @click="registerMode = !registerMode">
+              {{ registerMode ? "已有账号？去登录" : "首次部署？尝试注册（若管理员未关闭）" }}
+            </el-link>
+          </div>
+        </el-form>
+      </el-card>
+    </div>
   </div>
 </template>
 
@@ -76,7 +90,7 @@ async function submit() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 24px 20px;
   box-sizing: border-box;
   overflow-x: hidden;
 }
@@ -85,18 +99,60 @@ async function submit() {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(700px 420px at 18% 12%, rgba(58, 124, 232, 0.14), transparent 60%),
-    radial-gradient(560px 380px at 88% 78%, rgba(92, 184, 122, 0.1), transparent 55%),
-    linear-gradient(165deg, var(--mr-bg-page), #e4eaf3 100%);
+    radial-gradient(720px 420px at 15% 10%, rgba(245, 158, 11, 0.14), transparent 60%),
+    radial-gradient(560px 380px at 90% 85%, rgba(251, 113, 133, 0.08), transparent 55%),
+    var(--mr-bg-page);
   pointer-events: none;
 }
 
-.card {
+.login-stage {
   position: relative;
   width: min(420px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.brand-block {
+  text-align: center;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  background: var(--el-color-primary);
+  color: var(--color-on-primary);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.5px;
+}
+
+.brand-name {
+  margin: 0 0 8px;
+  font-size: clamp(1.75rem, 5vw, 2.125rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--mr-text);
+  line-height: 1.2;
+}
+
+.brand-tagline {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--mr-text-secondary);
+  line-height: 1.55;
+}
+
+.card {
+  width: 100%;
   border-radius: var(--mr-radius-lg);
   border: 1px solid var(--mr-border-soft);
-  box-shadow: var(--mr-shadow-md);
+  background: var(--color-card);
 }
 
 .hdr {
@@ -118,6 +174,10 @@ async function submit() {
   color: var(--mr-text-muted);
 }
 
+.submit-btn {
+  width: 100%;
+}
+
 .toggle {
   text-align: center;
   padding-top: 4px;
@@ -125,5 +185,18 @@ async function submit() {
 
 .toggle :deep(.el-link) {
   font-size: 13px;
+  cursor: pointer;
+}
+
+@media (max-width: 480px) {
+  .page {
+    padding: 20px 16px;
+    align-items: flex-start;
+    padding-top: 48px;
+  }
+
+  .login-stage {
+    gap: 22px;
+  }
 }
 </style>

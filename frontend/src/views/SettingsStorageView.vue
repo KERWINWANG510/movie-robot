@@ -1,11 +1,23 @@
 <script setup lang="ts">
 import { FolderOpened } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
+import { useRouter } from "vue-router";
 
 import http from "../api/http";
 import "../styles/settings-views.css";
+import { useBrowsePrefsStore } from "../stores/browsePrefs";
 import { settingsErrMsg } from "../utils/settingsHttp";
+
+const router = useRouter();
+const prefs = useBrowsePrefsStore();
+const returnTo = computed(() => prefs.returnTo);
+
+function goBackToFiles() {
+  const target = prefs.returnTo || "/files";
+  prefs.setReturnTo(null);
+  void router.push(target);
+}
 
 const loading = ref(false);
 const saving = ref(false);
@@ -129,6 +141,7 @@ onMounted(() => {
 
     <div class="mr-sticky-actionbar">
       <div class="mr-sticky-actionbar__inner">
+        <el-button v-if="returnTo" size="large" @click="goBackToFiles">返回文件页</el-button>
         <el-button type="primary" size="large" :loading="saving" class="save-btn" @click="saveStorage">
           保存存储配置
         </el-button>
