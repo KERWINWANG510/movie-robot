@@ -4,9 +4,11 @@ import {
   CopyDocument,
   Cpu,
   EditPen,
+  Film,
   FolderOpened,
   Menu as IconMenu,
   Setting,
+  Star,
   Upload,
 } from "@element-plus/icons-vue";
 import { computed, ref } from "vue";
@@ -26,31 +28,44 @@ const drawerVisible = ref(false);
 
 /** 侧栏子菜单 index，须与模板中 el-sub-menu 的 index 一致 */
 const FILES_SUBMENU_INDEX = "files-submenu";
+const MEDIA_SUBMENU_INDEX = "media-submenu";
 const SETTINGS_SUBMENU_INDEX = "settings-submenu";
 
 type TopNavName = "rename" | "folder-merge" | "transfer";
-type MenuLeafIndex = TopNavName | "settings-storage" | "settings-ai" | "settings-open-api";
+type SettingsLeaf = "settings-storage" | "settings-ai" | "settings-media" | "settings-open-api";
+type MediaLeaf = "media-browse" | "media-subscriptions";
+type MenuLeafIndex = TopNavName | SettingsLeaf | MediaLeaf;
 
 const isFilesBranch = computed(
   () => route.name === "rename" || route.name === "folder-merge" || route.name === "transfer",
+);
+
+const isMediaBranch = computed(
+  () =>
+    route.name === "media-browse" ||
+    route.name === "media-detail" ||
+    route.name === "media-subscriptions",
 );
 
 const isSettingsBranch = computed(
   () =>
     route.name === "settings-storage" ||
     route.name === "settings-ai" ||
+    route.name === "settings-media" ||
     route.name === "settings-open-api",
 );
 
 /** 跨越不同主导航分支时重挂菜单，以便 default-openeds 在首次进入时展开对应子菜单 */
 const sideMenuInstanceKey = computed(() => {
   if (isSettingsBranch.value) return "nav-settings";
+  if (isMediaBranch.value) return "nav-media";
   if (isFilesBranch.value) return "nav-files";
   return "nav-top";
 });
 
 const submenuDefaultOpeneds = computed(() => {
   if (isSettingsBranch.value) return [SETTINGS_SUBMENU_INDEX];
+  if (isMediaBranch.value) return [MEDIA_SUBMENU_INDEX];
   if (isFilesBranch.value) return [FILES_SUBMENU_INDEX];
   return [];
 });
@@ -59,8 +74,12 @@ function goTop(name: TopNavName) {
   router.push(fileRouteLocation(name));
 }
 
-function goSettingsChild(name: "settings-storage" | "settings-ai" | "settings-open-api") {
-  if (isFilesBranch.value) {
+function goMediaChild(name: MediaLeaf) {
+  router.push({ name });
+}
+
+function goSettingsChild(name: SettingsLeaf) {
+  if (isFilesBranch.value || isMediaBranch.value) {
     prefs.setReturnTo(route.fullPath);
   }
   router.push({ name });
@@ -73,8 +92,18 @@ function onDrawerSelect(index: string) {
     drawerVisible.value = false;
     return;
   }
-  if (leaf === "settings-storage" || leaf === "settings-ai" || leaf === "settings-open-api") {
-    if (isFilesBranch.value) prefs.setReturnTo(route.fullPath);
+  if (leaf === "media-browse" || leaf === "media-subscriptions") {
+    router.push({ name: leaf });
+    drawerVisible.value = false;
+    return;
+  }
+  if (
+    leaf === "settings-storage" ||
+    leaf === "settings-ai" ||
+    leaf === "settings-media" ||
+    leaf === "settings-open-api"
+  ) {
+    if (isFilesBranch.value || isMediaBranch.value) prefs.setReturnTo(route.fullPath);
     router.push({ name: leaf });
     drawerVisible.value = false;
   }
@@ -88,7 +117,10 @@ async function logout() {
 const activeMenu = computed(() => {
   if (route.name === "settings-storage") return "settings-storage";
   if (route.name === "settings-ai") return "settings-ai";
+  if (route.name === "settings-media") return "settings-media";
   if (route.name === "settings-open-api") return "settings-open-api";
+  if (route.name === "media-subscriptions") return "media-subscriptions";
+  if (route.name === "media-browse" || route.name === "media-detail") return "media-browse";
   if (route.name === "transfer") return "transfer";
   if (route.name === "folder-merge") return "folder-merge";
   return "rename";
@@ -143,6 +175,20 @@ const displayVersion = APP_VERSION;
               <span>文件传输</span>
             </el-menu-item>
           </el-sub-menu>
+          <el-sub-menu :index="MEDIA_SUBMENU_INDEX">
+            <template #title>
+              <el-icon><Film /></el-icon>
+              <span>影视</span>
+            </template>
+            <el-menu-item index="media-browse" @click="goMediaChild('media-browse')">
+              <el-icon><Film /></el-icon>
+              <span>影视发现</span>
+            </el-menu-item>
+            <el-menu-item index="media-subscriptions" @click="goMediaChild('media-subscriptions')">
+              <el-icon><Star /></el-icon>
+              <span>想看列表</span>
+            </el-menu-item>
+          </el-sub-menu>
           <el-sub-menu :index="SETTINGS_SUBMENU_INDEX">
             <template #title>
               <el-icon><Setting /></el-icon>
@@ -155,6 +201,10 @@ const displayVersion = APP_VERSION;
             <el-menu-item index="settings-ai" @click="goSettingsChild('settings-ai')">
               <el-icon><Cpu /></el-icon>
               <span>AI 服务</span>
+            </el-menu-item>
+            <el-menu-item index="settings-media" @click="goSettingsChild('settings-media')">
+              <el-icon><Film /></el-icon>
+              <span>影视数据源</span>
             </el-menu-item>
             <el-menu-item index="settings-open-api" @click="goSettingsChild('settings-open-api')">
               <el-icon><Connection /></el-icon>
@@ -194,6 +244,20 @@ const displayVersion = APP_VERSION;
             <span>文件传输</span>
           </el-menu-item>
         </el-sub-menu>
+        <el-sub-menu :index="MEDIA_SUBMENU_INDEX">
+          <template #title>
+            <el-icon><Film /></el-icon>
+            <span>影视</span>
+          </template>
+          <el-menu-item index="media-browse">
+            <el-icon><Film /></el-icon>
+            <span>影视发现</span>
+          </el-menu-item>
+          <el-menu-item index="media-subscriptions">
+            <el-icon><Star /></el-icon>
+            <span>想看列表</span>
+          </el-menu-item>
+        </el-sub-menu>
         <el-sub-menu :index="SETTINGS_SUBMENU_INDEX">
           <template #title>
             <el-icon><Setting /></el-icon>
@@ -206,6 +270,10 @@ const displayVersion = APP_VERSION;
           <el-menu-item index="settings-ai">
             <el-icon><Cpu /></el-icon>
             <span>AI 服务</span>
+          </el-menu-item>
+          <el-menu-item index="settings-media">
+            <el-icon><Film /></el-icon>
+            <span>影视数据源</span>
           </el-menu-item>
           <el-menu-item index="settings-open-api">
             <el-icon><Connection /></el-icon>
@@ -282,7 +350,7 @@ const displayVersion = APP_VERSION;
   height: 34px;
   border-radius: 9px;
   background: var(--el-color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
   font-weight: 700;
   font-size: 12px;
   letter-spacing: -0.5px;
@@ -383,7 +451,7 @@ const displayVersion = APP_VERSION;
 }
 
 .side-menu :deep(.el-menu-item.is-active) {
-  color: var(--el-color-primary-dark-2) !important;
+  color: var(--el-color-primary) !important;
   background: var(--el-color-primary-light-8) !important;
   font-weight: 600;
 }
@@ -413,8 +481,14 @@ const displayVersion = APP_VERSION;
 }
 
 .side-menu :deep(.el-sub-menu.is-active > .el-sub-menu__title) {
-  color: var(--el-color-primary-dark-2);
+  color: var(--el-color-primary);
   font-weight: 600;
+}
+
+.side-menu :deep(.el-menu) {
+  --el-menu-text-color: var(--mr-text-secondary);
+  --el-menu-active-color: var(--el-color-primary);
+  background: transparent;
 }
 
 .main-pane {
@@ -437,7 +511,7 @@ const displayVersion = APP_VERSION;
 }
 
 .nav-drawer :deep(.el-sub-menu.is-active > .el-sub-menu__title) {
-  color: var(--el-color-primary-dark-2);
+  color: var(--el-color-primary);
   font-weight: 600;
 }
 
@@ -457,7 +531,7 @@ const displayVersion = APP_VERSION;
 
 .nav-drawer :deep(.el-menu-item.is-active) {
   background: var(--el-color-primary-light-8) !important;
-  color: var(--el-color-primary-dark-2) !important;
+  color: var(--el-color-primary) !important;
   font-weight: 600;
 }
 

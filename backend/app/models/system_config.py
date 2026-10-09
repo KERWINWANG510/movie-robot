@@ -50,3 +50,9 @@ class SystemConfig(Base):
         nullable=False,
         comment="自然语言重命名说明，随请求发送给大模型；空则仅用默认规则",
     )
+    tmdb_api_key: Mapped[str] = mapped_column(
+        String(512),
+        default="",
+        nullable=False,
+        comment="TMDB API Key；须在界面保存后方可浏览影视元数据",
+    )

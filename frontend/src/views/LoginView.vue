@@ -99,8 +99,8 @@ async function submit() {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(720px 420px at 15% 10%, rgba(13, 148, 136, 0.16), transparent 60%),
-    radial-gradient(560px 380px at 90% 85%, rgba(234, 88, 12, 0.08), transparent 55%),
+    radial-gradient(720px 420px at 15% 10%, rgba(245, 158, 11, 0.14), transparent 60%),
+    radial-gradient(560px 380px at 90% 85%, rgba(251, 113, 133, 0.08), transparent 55%),
     var(--mr-bg-page);
   pointer-events: none;
 }
@@ -126,7 +126,7 @@ async function submit() {
   margin-bottom: 14px;
   border-radius: 14px;
   background: var(--el-color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
   font-weight: 700;
   font-size: 18px;
   letter-spacing: -0.5px;

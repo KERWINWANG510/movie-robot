@@ -58,6 +58,12 @@ async def _migrate_sqlite_schema() -> None:
                     "ALTER TABLE system_config ADD COLUMN ai_provider VARCHAR(64) NOT NULL DEFAULT 'custom'",
                 ),
             )
+        if "tmdb_api_key" not in col_names:
+            await conn.execute(
+                text(
+                    "ALTER TABLE system_config ADD COLUMN tmdb_api_key VARCHAR(512) NOT NULL DEFAULT ''",
+                ),
+            )
         # 旧版「单一传输目标」列：迁移到 transfer_destination 表后删除（需 SQLite 3.35+）
         r_td = await conn.execute(
             text("SELECT name FROM sqlite_master WHERE type='table' AND name='transfer_destination'"),

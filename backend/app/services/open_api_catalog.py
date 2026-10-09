@@ -23,6 +23,13 @@ _COMMON_ERRORS = [
     "404：目录或传输目标不存在",
 ]
 
+_MEDIA_SUB_ERRORS = [
+    "401：缺少 API Key、Key 无效/已吊销、或 Key 已过期",
+    "400：TMDB API Key 未配置/无效，或 media_type 非法",
+    "404：想看记录不存在，或 TMDB 条目不存在",
+    "502：请求 TMDB 上游失败",
+]
+
 
 def _f(
     name: str,
@@ -41,6 +48,24 @@ def _f(
         example=example,
         children=children or [],
     )
+
+
+_SUB_ITEM_FIELDS = [
+    _f("id", "integer", "订阅记录主键", required=True, example=1),
+    _f("tmdb_id", "integer", "TMDB 条目 id", required=True, example=550),
+    _f("media_type", "string", "媒体类型：movie 或 tv", required=True, example="movie"),
+    _f("title", "string", "标题缓存", required=True, example="搏击俱乐部"),
+    _f("poster_path", "string", "海报相对路径（TMDB）", example="/pB8BM7pdSp6B6Ih7QZ4BrQ6LxyB.jpg"),
+    _f(
+        "poster_url",
+        "string",
+        "海报完整 URL，可直接访问",
+        example="https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Ih7QZ4BrQ6LxyB.jpg",
+    ),
+    _f("overview", "string", "简介缓存"),
+    _f("release_date", "string", "上映/首播日期 YYYY-MM-DD", example="1999-10-15"),
+    _f("created_at", "string", "订阅时间 ISO 字符串", required=True, example="2026-10-09T12:00:00"),
+]
 
 
 def build_open_api_catalog() -> OpenApiCatalogResponse:
@@ -65,6 +90,66 @@ def build_open_api_catalog() -> OpenApiCatalogResponse:
             ],
             response_example={"status": "ok", "mount_ready": True},
             error_codes=_COMMON_ERRORS[:1],
+        ),
+        OpenApiCatalogEndpoint(
+            id="catalog",
+            method="GET",
+            path="/api/v1/open/catalog",
+            summary="能力目录",
+            description=(
+                "使用 API Key 查询当前系统对外暴露的全部开放接口清单，"
+                "含路径、方法、参数、响应字段、示例与错误说明。与管理页「开放接口」目录同源。"
+            ),
+            notes=[
+                "适合第三方系统启动时拉取契约，无需登录管理后台。",
+                "本接口本身也会出现在返回的 endpoints 列表中。",
+                "目录随服务端版本更新；调用方宜缓存后定期刷新。",
+            ],
+            headers=[_AUTH_HEADER],
+            response_fields=[
+                _f(
+                    "base_path",
+                    "string",
+                    "开放接口统一前缀",
+                    required=True,
+                    example="/api/v1/open",
+                ),
+                _f(
+                    "auth",
+                    "string",
+                    "鉴权方式说明",
+                    required=True,
+                    example="Authorization: Bearer <token> 或 X-Api-Key: <token>",
+                ),
+                _f(
+                    "auth_notes",
+                    "array",
+                    "鉴权与路径等通用约定（字符串列表）",
+                    required=True,
+                ),
+                _f(
+                    "endpoints",
+                    "array",
+                    "接口列表；每项含 id/method/path/summary/description/notes/"
+                    "headers/query_params/path_params/request_fields/response_fields/"
+                    "body_example/response_example/error_codes",
+                    required=True,
+                ),
+            ],
+            response_example={
+                "base_path": "/api/v1/open",
+                "auth": "Authorization: Bearer <token> 或 X-Api-Key: <token>",
+                "auth_notes": ["请求头二选一：Authorization: Bearer <token>，或 X-Api-Key: <token>。"],
+                "endpoints": [
+                    {
+                        "id": "health",
+                        "method": "GET",
+                        "path": "/api/v1/open/health",
+                        "summary": "健康检查",
+                    }
+                ],
+            },
+            error_codes=["401：缺少 API Key、Key 无效/已吊销、或 Key 已过期"],
         ),
         OpenApiCatalogEndpoint(
             id="browse",
@@ -505,13 +590,118 @@ def build_open_api_catalog() -> OpenApiCatalogResponse:
             },
             error_codes=_COMMON_ERRORS,
         ),
+        OpenApiCatalogEndpoint(
+            id="media-subscriptions-list",
+            method="GET",
+            path="/api/v1/open/media/subscriptions",
+            summary="列出想看列表",
+            description="返回已加入想看的影视条目。与 Web 端内置账号 admin 的想看列表共享同一数据。",
+            notes=[
+                "不依赖挂载根；仅需有效 API Key。",
+                "与使用 admin 登录后在「想看列表」页看到的内容一致。",
+            ],
+            headers=[_AUTH_HEADER],
+            response_fields=[
+                _f(
+                    "items",
+                    "array<object>",
+                    "想看条目列表（按订阅时间倒序）",
+                    required=True,
+                    children=_SUB_ITEM_FIELDS,
+                ),
+            ],
+            response_example={
+                "items": [
+                    {
+                        "id": 1,
+                        "tmdb_id": 550,
+                        "media_type": "movie",
+                        "title": "搏击俱乐部",
+                        "poster_path": "/pB8BM7pdSp6B6Ih7QZ4BrQ6LxyB.jpg",
+                        "poster_url": "https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Ih7QZ4BrQ6LxyB.jpg",
+                        "overview": "……",
+                        "release_date": "1999-10-15",
+                        "created_at": "2026-10-09T12:00:00",
+                    }
+                ]
+            },
+            error_codes=_MEDIA_SUB_ERRORS[:1],
+        ),
+        OpenApiCatalogEndpoint(
+            id="media-subscriptions-add",
+            method="POST",
+            path="/api/v1/open/media/subscriptions",
+            summary="加入想看",
+            description="按 TMDB 条目加入想看；服务端会拉取 TMDB 详情写入标题/海报等缓存。已存在时幂等返回原记录。",
+            notes=[
+                "须先在系统配置「影视数据源」保存有效的 TMDB API Key。",
+                "media_type 仅支持 movie 或 tv。",
+                "与内置账号 admin 的想看列表共享。",
+            ],
+            headers=[_AUTH_HEADER],
+            request_fields=[
+                _f("media_type", "string", "媒体类型：movie 或 tv", required=True, example="movie"),
+                _f("tmdb_id", "integer", "TMDB 条目 id", required=True, example=550),
+            ],
+            response_fields=_SUB_ITEM_FIELDS,
+            body_example={"media_type": "movie", "tmdb_id": 550},
+            response_example={
+                "id": 1,
+                "tmdb_id": 550,
+                "media_type": "movie",
+                "title": "搏击俱乐部",
+                "poster_path": "/pB8BM7pdSp6B6Ih7QZ4BrQ6LxyB.jpg",
+                "poster_url": "https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Ih7QZ4BrQ6LxyB.jpg",
+                "overview": "……",
+                "release_date": "1999-10-15",
+                "created_at": "2026-10-09T12:00:00",
+            },
+            error_codes=_MEDIA_SUB_ERRORS,
+        ),
+        OpenApiCatalogEndpoint(
+            id="media-subscriptions-remove",
+            method="DELETE",
+            path="/api/v1/open/media/subscriptions/{media_type}/{tmdb_id}",
+            summary="取消想看",
+            description="按媒体类型与 TMDB id 移出想看列表。",
+            notes=[
+                "路径参数 media_type 为 movie 或 tv；tmdb_id 为正整数。",
+                "与内置账号 admin 的想看列表共享。",
+            ],
+            headers=[_AUTH_HEADER],
+            path_params=[
+                OpenApiCatalogParam(
+                    name="media_type",
+                    location="path",
+                    type="string",
+                    required=True,
+                    description="媒体类型：movie 或 tv",
+                    example="movie",
+                ),
+                OpenApiCatalogParam(
+                    name="tmdb_id",
+                    location="path",
+                    type="integer",
+                    required=True,
+                    description="TMDB 条目 id",
+                    example=550,
+                ),
+            ],
+            response_fields=[
+                _f("ok", "boolean", "成功时为 true", required=True, example=True),
+            ],
+            response_example={"ok": True},
+            error_codes=_MEDIA_SUB_ERRORS,
+        ),
     ]
     return OpenApiCatalogResponse(
         endpoints=endpoints,
         auth_notes=[
             "在「开放接口」页创建访问令牌；明文仅创建时展示一次。",
             "请求头二选一：Authorization: Bearer <token>，或 X-Api-Key: <token>。",
+            "第三方可用 GET /api/v1/open/catalog（携带 API Key）拉取完整能力列表，无需登录管理后台。",
             "所有业务路径（除传输目标绝对路径外）均为相对挂载根的相对路径，使用 / 分隔，禁止 ..。",
             "令牌可设有效期；过期或吊销后一律 401。",
+            "想看相关接口与内置账号 admin 的想看列表共享；加入想看需已配置 TMDB API Key。",
         ],
     )

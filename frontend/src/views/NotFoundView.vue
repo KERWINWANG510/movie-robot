@@ -49,7 +49,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   padding: 24px 16px;
   background:
-    radial-gradient(720px 400px at 50% -10%, rgba(13, 148, 136, 0.14), transparent 55%),
+    radial-gradient(720px 400px at 50% -10%, rgba(245, 158, 11, 0.12), transparent 55%),
     var(--mr-bg-page);
 }
 

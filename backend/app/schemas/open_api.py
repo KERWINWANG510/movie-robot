@@ -91,7 +91,7 @@ class OpenApiCatalogField(BaseModel):
 
 class OpenApiCatalogParam(BaseModel):
     name: str
-    location: str = Field(description="query / header / body")
+    location: str = Field(description="query / header / path / body")
     type: str = Field(default="string", description="参数类型")
     required: bool = False
     description: str = ""
@@ -107,6 +107,10 @@ class OpenApiCatalogEndpoint(BaseModel):
     notes: list[str] = Field(default_factory=list, description="补充约定与限制")
     headers: list[OpenApiCatalogParam] = Field(default_factory=list)
     query_params: list[OpenApiCatalogParam] = Field(default_factory=list)
+    path_params: list[OpenApiCatalogParam] = Field(
+        default_factory=list,
+        description="路径参数（对应 path 中的 {name} 占位）",
+    )
     request_fields: list[OpenApiCatalogField] = Field(default_factory=list, description="请求体字段说明")
     response_fields: list[OpenApiCatalogField] = Field(default_factory=list, description="成功响应字段说明")
     body_example: object | None = None

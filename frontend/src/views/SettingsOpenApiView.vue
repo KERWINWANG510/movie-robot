@@ -48,6 +48,7 @@ type CatalogEndpoint = {
   notes?: string[];
   headers?: CatalogParam[];
   query_params: CatalogParam[];
+  path_params?: CatalogParam[];
   request_fields?: CatalogField[];
   response_fields?: CatalogField[];
   body_example: unknown;
@@ -101,6 +102,8 @@ const expiresOptions = [
 const debugEndpointId = ref("");
 const debugToken = ref(localStorage.getItem("mr_open_api_debug_token") || "");
 const debugQueryPath = ref("");
+/** 路径参数名 → 填写值 */
+const debugPathParams = ref<Record<string, string>>({});
 const debugBody = ref("");
 const debugLoading = ref(false);
 const debugStatus = ref<number | null>(null);
@@ -131,6 +134,11 @@ watch(selectedEndpoint, (ep) => {
   const pathParam = ep.query_params.find((p) => p.name === "path");
   debugQueryPath.value =
     pathParam && pathParam.example != null ? String(pathParam.example) : "";
+  const nextPath: Record<string, string> = {};
+  for (const p of ep.path_params || []) {
+    nextPath[p.name] = p.example != null ? String(p.example) : "";
+  }
+  debugPathParams.value = nextPath;
   debugBody.value = ep.body_example != null ? JSON.stringify(ep.body_example, null, 2) : "";
   debugStatus.value = null;
   debugResponse.value = "";
@@ -274,8 +282,9 @@ async function runDebug() {
     return;
   }
 
+  const method = ep.method.toUpperCase();
   let body: unknown = undefined;
-  if (ep.method.toUpperCase() !== "GET") {
+  if (method === "POST" || method === "PUT" || method === "PATCH") {
     const raw = debugBody.value.trim();
     if (raw) {
       try {
@@ -291,8 +300,23 @@ async function runDebug() {
   debugStatus.value = null;
   debugResponse.value = "";
   try {
-    const url = new URL(ep.path, window.location.origin);
-    if (ep.method.toUpperCase() === "GET" && ep.query_params.some((p) => p.name === "path")) {
+    let path = ep.path;
+    for (const p of ep.path_params || []) {
+      const val = (debugPathParams.value[p.name] ?? "").trim();
+      if (p.required && !val) {
+        ElMessage.warning(`请填写路径参数 ${p.name}`);
+        debugLoading.value = false;
+        return;
+      }
+      path = path.replace(`{${p.name}}`, encodeURIComponent(val));
+    }
+    if (path.includes("{")) {
+      ElMessage.warning("路径中仍有未替换的占位符，请检查路径参数");
+      debugLoading.value = false;
+      return;
+    }
+    const url = new URL(path, window.location.origin);
+    if (method === "GET" && ep.query_params.some((p) => p.name === "path")) {
       url.searchParams.set("path", debugQueryPath.value);
     }
     const res = await axios.request({
@@ -328,7 +352,7 @@ onMounted(() => {
     <div class="page-head mr-page-intro">
       <h1 class="mr-page-title">开放接口</h1>
       <p class="mr-page-desc">
-        供外部系统（如下载器）通过 API Key 调用合并、重命名、传输等能力。鉴权方式：{{ catalog?.auth || "Bearer / X-Api-Key" }}
+        供外部系统（如下载器）通过 API Key 调用合并、重命名、传输、想看列表等能力。鉴权方式：{{ catalog?.auth || "Bearer / X-Api-Key" }}
       </p>
     </div>
 
@@ -443,6 +467,23 @@ onMounted(() => {
             </el-table>
           </div>
 
+          <div v-if="ep.path_params?.length" class="ep-block">
+            <div class="ep-label">路径参数</div>
+            <el-table :data="ep.path_params" size="small" border class="field-table">
+              <el-table-column label="名称" prop="name" min-width="100" />
+              <el-table-column label="类型" width="90">
+                <template #default="{ row }">{{ row.type || "string" }}</template>
+              </el-table-column>
+              <el-table-column label="必填" width="64">
+                <template #default="{ row }">{{ row.required ? "是" : "否" }}</template>
+              </el-table-column>
+              <el-table-column label="说明" prop="description" min-width="220" />
+              <el-table-column label="示例" min-width="120" show-overflow-tooltip>
+                <template #default="{ row }">{{ exampleText(row.example) }}</template>
+              </el-table-column>
+            </el-table>
+          </div>
+
           <div v-if="flattenFields(ep.request_fields).length" class="ep-block">
             <div class="ep-label">请求体字段</div>
             <el-table :data="flattenFields(ep.request_fields)" size="small" border class="field-table" row-key="name">
@@ -522,7 +563,26 @@ onMounted(() => {
         >
           <el-input v-model="debugQueryPath" placeholder="留空为根目录" clearable />
         </el-form-item>
-        <el-form-item v-if="selectedEndpoint && selectedEndpoint.method !== 'GET'" label="请求体 JSON">
+        <template v-if="selectedEndpoint?.path_params?.length">
+          <el-form-item
+            v-for="p in selectedEndpoint.path_params"
+            :key="p.name"
+            :label="`路径参数 ${p.name}`"
+          >
+            <el-input
+              v-model="debugPathParams[p.name]"
+              :placeholder="p.example != null ? String(p.example) : p.description"
+              clearable
+            />
+          </el-form-item>
+        </template>
+        <el-form-item
+          v-if="
+            selectedEndpoint &&
+            ['POST', 'PUT', 'PATCH'].includes(selectedEndpoint.method.toUpperCase())
+          "
+          label="请求体 JSON"
+        >
           <el-input v-model="debugBody" type="textarea" :rows="10" class="mono-area" />
         </el-form-item>
         <el-form-item>

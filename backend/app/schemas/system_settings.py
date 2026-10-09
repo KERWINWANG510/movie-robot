@@ -25,6 +25,8 @@ class SystemSettingsPublic(BaseModel):
     rename_instruction: str = ""
     # 仅在库中保存了 API Key 时为 True（用于是否展示「清除库内密钥」）
     api_key_saved_in_db: bool = False
+    # 库中是否已保存 TMDB API Key（不回显明文）
+    tmdb_api_key_saved_in_db: bool = False
     # 合并后的挂载根路径存在且为目录时可用；否则首页应引导先配置
     mount_ready: bool = False
 
@@ -42,6 +44,10 @@ class SystemSettingsPatch(BaseModel):
     openai_api_key: str | None = Field(
         default=None,
         description="传入则更新；传空字符串表示清空库内密钥",
+    )
+    tmdb_api_key: str | None = Field(
+        default=None,
+        description="TMDB API Key；传入则更新；传空字符串表示清空库内密钥",
     )
 
 

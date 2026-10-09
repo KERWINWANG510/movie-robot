@@ -20,10 +20,16 @@ from app.schemas.files import (
     FolderMergeResponse,
     FolderMergeResultItem,
 )
+from app.schemas.media import (
+    MediaSubscribeRequest,
+    MediaSubscriptionItem,
+    MediaSubscriptionListResponse,
+)
 from app.schemas.open_api import (
     AutoRenameItemResult,
     AutoRenameRequest,
     AutoRenameResponse,
+    OpenApiCatalogResponse,
     OpenExecuteBody,
     OpenHealthResponse,
 )
@@ -37,6 +43,13 @@ from app.schemas.rename import (
 from app.schemas.system_settings import TransferDestinationPublic
 from app.services.file_transfer import resolve_transfer_target_directory, transfer_paths_to_target
 from app.services.folder_merge import merge_folder_trees_flat
+from app.services.media_subscriptions import (
+    add_subscription_for_user,
+    get_builtin_admin_user,
+    list_subscriptions_for_user,
+    remove_subscription_for_user,
+)
+from app.services.open_api_catalog import build_open_api_catalog
 from app.services.openai_rename import suggest_filenames
 from app.services.path_security import PathNotAllowedError, resolve_under_root
 from app.services.runtime_config import effective_ai_params, effective_mount_root, get_system_config_row
@@ -86,6 +99,14 @@ async def open_health(
 ) -> OpenHealthResponse:
     cfg_row = await get_system_config_row(db)
     return OpenHealthResponse(status="ok", mount_ready=_mount_ready(cfg_row))
+
+
+@router.get("/catalog", response_model=OpenApiCatalogResponse)
+async def open_catalog(
+    _token: ApiAccessToken = Depends(get_open_api_token),
+) -> OpenApiCatalogResponse:
+    """返回当前开放接口能力目录（与管理页清单同源）。"""
+    return build_open_api_catalog()
 
 
 @router.get("/browse", response_model=BrowseResponse)
@@ -318,3 +339,48 @@ async def open_transfer(
     ok_n = sum(1 for x in items if x.ok)
     fail_n = sum(1 for x in items if not x.ok)
     return FileTransferResponse(results=items, ok_count=ok_n, failed_count=fail_n)
+
+
+@router.get("/media/subscriptions", response_model=MediaSubscriptionListResponse)
+async def open_list_media_subscriptions(
+    _token: ApiAccessToken = Depends(get_open_api_token),
+    db: AsyncSession = Depends(get_db),
+) -> MediaSubscriptionListResponse:
+    """列出想看列表（与内置 admin 账号的想看列表共享）。"""
+    owner = await get_builtin_admin_user(db)
+    items = await list_subscriptions_for_user(db, owner.id)
+    return MediaSubscriptionListResponse(items=items)
+
+
+@router.post("/media/subscriptions", response_model=MediaSubscriptionItem)
+async def open_add_media_subscription(
+    body: MediaSubscribeRequest,
+    _token: ApiAccessToken = Depends(get_open_api_token),
+    db: AsyncSession = Depends(get_db),
+) -> MediaSubscriptionItem:
+    """加入想看（需已配置 TMDB API Key；与内置 admin 想看列表共享）。"""
+    owner = await get_builtin_admin_user(db)
+    return await add_subscription_for_user(
+        db,
+        owner.id,
+        media_type=body.media_type,
+        tmdb_id=body.tmdb_id,
+    )
+
+
+@router.delete("/media/subscriptions/{media_type}/{tmdb_id}")
+async def open_remove_media_subscription(
+    media_type: str,
+    tmdb_id: int,
+    _token: ApiAccessToken = Depends(get_open_api_token),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, bool]:
+    """取消想看（与内置 admin 想看列表共享）。"""
+    owner = await get_builtin_admin_user(db)
+    await remove_subscription_for_user(
+        db,
+        owner.id,
+        media_type=media_type,
+        tmdb_id=tmdb_id,
+    )
+    return {"ok": True}

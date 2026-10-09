@@ -7,52 +7,52 @@
 ---
 
 **Project:** Movie Robot
-**Generated:** 2026-10-08 14:50:26
-**Category:** Productivity Tool
-**Design Dials:** Variance 4/10 (Balanced / Modern) | Motion 4/10 (Standard) | Density 7/10 (Standard)
+**Updated:** 2026-10-09
+**Category:** Media Library + File Ops (Hybrid)
+**Design Dials:** Variance 5/10 (Balanced / Modern) | Motion 3/10 (Subtle) | Density 6/10 (Standard)
 
 ---
 
 ## Global Rules
 
-### Color Palette
+### Color Palette（深色影院风）
 
 | Role | Hex | CSS Variable |
 |------|-----|--------------|
-| Primary | `#0D9488` | `--color-primary` |
-| On Primary | `#000000` | `--color-on-primary` |
-| Secondary | `#14B8A6` | `--color-secondary` |
-| On Secondary | `#0F172A` | `--color-on-secondary` |
-| Accent/CTA | `#EA580C` | `--color-accent` |
-| On Accent/CTA | `#000000` | `--color-on-accent` |
-| Background | `#F0FDFA` | `--color-background` |
-| Foreground | `#134E4A` | `--color-foreground` |
-| Card | `#FFFFFF` | `--color-card` |
-| Card Foreground | `#134E4A` | `--color-card-foreground` |
-| Muted | `#E8F1F4` | `--color-muted` |
-| Muted Foreground | `#475569` | `--color-muted-foreground` |
-| Border | `#99F6E4` | `--color-border` |
-| Destructive | `#DC2626` | `--color-destructive` |
-| On Destructive | `#FFFFFF` | `--color-on-destructive` |
-| Ring | `#0D9488` | `--color-ring` |
+| Primary | `#F59E0B` | `--color-primary` |
+| On Primary | `#111113` | `--color-on-primary` |
+| Secondary | `#FBBF24` | `--color-secondary` |
+| On Secondary | `#111113` | `--color-on-secondary` |
+| Accent/CTA | `#FB7185` | `--color-accent` |
+| On Accent/CTA | `#111113` | `--color-on-accent` |
+| Background | `#0C0C0E` | `--color-background` |
+| Foreground | `#F4F4F5` | `--color-foreground` |
+| Card | `#18181B` | `--color-card` |
+| Card Foreground | `#F4F4F5` | `--color-card-foreground` |
+| Muted | `#27272A` | `--color-muted` |
+| Muted Foreground | `#A1A1AA` | `--color-muted-foreground` |
+| Border | `#3F3F46` | `--color-border` |
+| Destructive | `#F87171` | `--color-destructive` |
+| On Destructive | `#111113` | `--color-on-destructive` |
+| Ring | `#F59E0B` | `--color-ring` |
 
-**Color Notes:** Teal focus + action orange [Accent adjusted from #F97316]
+**Color Notes:** Near-black cinema canvas + amber ticket gold for primary actions; rose accent only for wish/star highlights. UI chrome stays quiet so posters dominate.
 
 ### Typography
 
 - **Heading Font:** Plus Jakarta Sans
 - **Body Font:** Plus Jakarta Sans
-- **Mood:** friendly, modern, saas, clean, approachable, professional
-- **Google Fonts:** [Plus Jakarta Sans + Plus Jakarta Sans](https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap)
+- **Mood:** cinematic, calm, content-first, modern
+- **Google Fonts:** [Plus Jakarta Sans](https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap)
 
 **CSS Import:**
 ```css
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 ```
 
 ### Spacing Variables
 
-*Density: 7/10 — Standard*
+*Density: 6/10 — Standard*
 
 | Token | Value | Usage |
 |-------|-------|-------|
@@ -62,16 +62,14 @@
 | `--space-lg` | `24px` / `1.5rem` | Section padding |
 | `--space-xl` | `32px` / `2rem` | Large gaps |
 | `--space-2xl` | `48px` / `3rem` | Section margins |
-| `--space-3xl` | `64px` / `4rem` | Hero padding |
 
 ### Shadow Depths
 
 | Level | Value | Usage |
 |-------|-------|-------|
-| `--shadow-sm` | `0 1px 2px rgba(0,0,0,0.05)` | Subtle lift |
-| `--shadow-md` | `0 4px 6px rgba(0,0,0,0.1)` | Cards, buttons |
-| `--shadow-lg` | `0 10px 15px rgba(0,0,0,0.1)` | Modals, dropdowns |
-| `--shadow-xl` | `0 20px 25px rgba(0,0,0,0.15)` | Hero images, featured cards |
+| `--mr-shadow-sm` | `0 2px 8px rgba(0,0,0,0.35)` | Subtle lift |
+| `--mr-shadow-md` | `0 8px 24px rgba(0,0,0,0.45)` | Cards, hover |
+| `--el-box-shadow` | `0 8px 24px rgba(0,0,0,0.45)` | Modals, overlays |
 
 ---
 
@@ -80,32 +78,27 @@
 ### Buttons
 
 ```css
-/* Primary Button */
 .btn-primary {
-  background: #EA580C;
-  color: white;
+  background: #F59E0B;
+  color: #111113;
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 600;
-  transition: all 200ms ease;
+  transition: all 180ms ease;
   cursor: pointer;
 }
 
 .btn-primary:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
+  opacity: 0.94;
 }
 
-/* Secondary Button */
 .btn-secondary {
   background: transparent;
-  color: #0D9488;
-  border: 2px solid #0D9488;
+  color: #F59E0B;
+  border: 1px solid #3F3F46;
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 600;
-  transition: all 200ms ease;
-  cursor: pointer;
 }
 ```
 
@@ -113,16 +106,15 @@
 
 ```css
 .card {
-  background: #F0FDFA;
+  background: #18181B;
+  border: 1px solid #3F3F46;
   border-radius: 12px;
-  padding: 24px;
-  box-shadow: var(--shadow-md);
-  transition: all 200ms ease;
-  cursor: pointer;
+  transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
 }
 
 .card:hover {
-  box-shadow: var(--shadow-lg);
+  border-color: color-mix(in srgb, #F59E0B 40%, #3F3F46);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   transform: translateY(-2px);
 }
 ```
@@ -132,34 +124,17 @@
 ```css
 .input {
   padding: 12px 16px;
-  border: 1px solid #E2E8F0;
+  border: 1px solid #3F3F46;
   border-radius: 8px;
+  background: #18181B;
+  color: #F4F4F5;
   font-size: 16px;
-  transition: border-color 200ms ease;
 }
 
 .input:focus {
-  border-color: #0D9488;
+  border-color: #F59E0B;
   outline: none;
-  box-shadow: 0 0 0 3px #0D948820;
-}
-```
-
-### Modals
-
-```css
-.modal-overlay {
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-}
-
-.modal {
-  background: white;
-  border-radius: 16px;
-  padding: 32px;
-  box-shadow: var(--shadow-xl);
-  max-width: 500px;
-  width: 90%;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
 }
 ```
 
@@ -167,67 +142,42 @@
 
 ## Style Guidelines
 
-**Style:** Flat Design
+**Style:** Dark Cinema + Content-first Minimal
 
-**Keywords:** 2D, minimalist, bold colors, no shadows, clean lines, simple shapes, typography-focused, modern, icon-heavy
+**Keywords:** near-black canvas, amber accent, poster-forward, quiet chrome, subtle motion
 
-**Best For:** Web apps, mobile apps, cross-platform, startup MVPs, user-friendly, SaaS, dashboards, corporate
+**Best For:** Media discovery, watchlists, file ops beside media tools
 
-**Key Effects:** No gradients/shadows, simple hover (color/opacity shift), fast loading, clean transitions (150-200ms ease), minimal icons
+**Key Effects:** Soft amber hover tints, 150–220ms transitions, poster scale on card hover, respect `prefers-reduced-motion`
 
-### Page Pattern
+### Implementation Notes
 
-**Pattern Name:** Product Demo + Features
-
-- **Conversion Strategy:** Use an interactive demo only when it explains value better than static media. Provide captions, transcript, visible play/pause controls, and a non-video fallback; do not autoplay under reduced motion. Pause media when offscreen or hidden and keep the final product state available as static content.
-- **CTA Placement:** Video center + CTA right/bottom
-- **Section Order:** Hero > Product video/mockup (center) > Feature breakdown per section > Comparison (optional) > CTA
-
----
-
-## Motion
-
-**Stagger List** (Standard) — Trigger: load or scroll | Duration: 300-450ms | Easing: `back.out(1.4)`
-
-```js
-gsap.from('.grid-item', { opacity: 0, scale: 0.92, y: 16, duration: 0.4, stagger: { each: 0.06, from: 'start', grid: 'auto' }, ease: 'back.out(1.4)' });
-```
-
-**Framework notes:** grid: 'auto' lets GSAP infer rows/columns from a CSS grid layout for a natural wave stagger; Use matchMedia('(prefers-reduced-motion: reduce)') to skip non-essential motion and render the final state immediately
-
-- ✅ Combine with from: 'center' for a bento-grid layout to draw the eye inward first
-- ❌ Don't use back.out on dense data tables; the overshoot reads as sloppy on informational UI
-- ⚡ Group DOM writes; avoid interleaving layout reads (getBoundingClientRect) between staggered tweens
+- Root: `html.dark` + Element Plus `dark/css-vars.css`
+- Primary button text uses `--color-on-primary` (dark ink on amber)
+- Wish/star uses `--color-accent` sparingly; do not paint whole chrome with accent
+- Avoid mint/teal washes and purple entertainment palettes
 
 ---
 
 ## Anti-Patterns (Do NOT Use)
 
-- ❌ Complex onboarding
-- ❌ Slow performance
-
-### Additional Forbidden Patterns
-
-- ❌ **Emojis as icons** — Use SVG icons (Heroicons, Lucide, Simple Icons)
-- ❌ **Missing cursor:pointer** — All clickable elements must have cursor:pointer
-- ❌ **Layout-shifting hovers** — Avoid scale transforms that shift layout
-- ❌ **Low contrast text** — Maintain 4.5:1 minimum contrast ratio
-- ❌ **Instant state changes** — Always use transitions (150-300ms)
-- ❌ **Invisible focus states** — Focus states must be visible for a11y
+- ❌ Teal/mint full-page backgrounds
+- ❌ Purple-on-white SaaS gradients
+- ❌ Emojis as icons
+- ❌ Missing cursor:pointer on clickables
+- ❌ Layout-shifting hovers
+- ❌ Low contrast text (< 4.5:1 for body)
+- ❌ Instant state changes without transition
+- ❌ Invisible focus states
 
 ---
 
 ## Pre-Delivery Checklist
 
-Before delivering any UI code, verify:
-
-- [ ] No emojis used as icons (use SVG instead)
-- [ ] All icons from consistent icon set (Heroicons/Lucide)
-- [ ] `cursor-pointer` on all clickable elements
-- [ ] Hover states with smooth transitions (150-300ms)
-- [ ] Light mode: text contrast 4.5:1 minimum
-- [ ] Focus states visible for keyboard navigation
+- [ ] Dark canvas tokens applied via `global.css`
+- [ ] Element Plus dark css-vars loaded
+- [ ] Amber primary + dark on-primary on buttons
+- [ ] Media cards remain poster-first
 - [ ] `prefers-reduced-motion` respected
 - [ ] Responsive: 375px, 768px, 1024px, 1440px
-- [ ] No content hidden behind fixed navbars
 - [ ] No horizontal scroll on mobile

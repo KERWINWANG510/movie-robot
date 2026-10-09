@@ -4,7 +4,11 @@ import { useAuthStore } from "../stores/auth";
 import MainLayout from "../layouts/MainLayout.vue";
 import HomeView from "../views/HomeView.vue";
 import LoginView from "../views/LoginView.vue";
+import MediaBrowseView from "../views/MediaBrowseView.vue";
+import MediaDetailView from "../views/MediaDetailView.vue";
+import MediaSubscriptionsView from "../views/MediaSubscriptionsView.vue";
 import SettingsAiView from "../views/SettingsAiView.vue";
+import SettingsMediaView from "../views/SettingsMediaView.vue";
 import SettingsOpenApiView from "../views/SettingsOpenApiView.vue";
 import SettingsStorageView from "../views/SettingsStorageView.vue";
 import NotFoundView from "../views/NotFoundView.vue";
@@ -30,12 +34,31 @@ const router = createRouter({
           ],
         },
         {
+          path: "media",
+          component: RouterView,
+          redirect: { name: "media-browse" },
+          children: [
+            { path: "", name: "media-browse", component: MediaBrowseView },
+            {
+              path: "subscriptions",
+              name: "media-subscriptions",
+              component: MediaSubscriptionsView,
+            },
+            {
+              path: ":type/:id",
+              name: "media-detail",
+              component: MediaDetailView,
+            },
+          ],
+        },
+        {
           path: "settings",
           component: RouterView,
           redirect: { name: "settings-storage" },
           children: [
             { path: "storage", name: "settings-storage", component: SettingsStorageView },
             { path: "ai", name: "settings-ai", component: SettingsAiView },
+            { path: "media", name: "settings-media", component: SettingsMediaView },
             { path: "open-api", name: "settings-open-api", component: SettingsOpenApiView },
           ],
         },
