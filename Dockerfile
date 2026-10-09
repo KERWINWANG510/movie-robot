@@ -3,8 +3,8 @@ FROM node:22-alpine AS frontend-build
 ARG APP_VERSION=dev
 ENV VITE_APP_VERSION=$APP_VERSION
 WORKDIR /src/frontend
-COPY frontend/package.json ./
-RUN npm install
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
