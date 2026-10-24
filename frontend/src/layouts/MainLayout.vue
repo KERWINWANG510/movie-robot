@@ -234,10 +234,10 @@ onMounted(() => {
             <div class="mount-pill-fill" :style="{ width: mountReady ? '100%' : '8%' }" />
           </div>
           <div v-if="mountPath" class="mount-pill-path" :title="mountPath">{{ mountPath }}</div>
-        </div>
-        <div class="side-health" :class="{ ok: mountReady }">
-          <span class="health-dot" />
-          <span>系统健康状态: {{ mountReady ? "正常" : "待配置" }}</span>
+          <div class="mount-pill-health" :class="{ ok: mountReady }">
+            <span class="health-dot" />
+            <span>系统健康状态: {{ mountReady ? "正常" : "待配置" }}</span>
+          </div>
         </div>
       </div>
     </aside>
@@ -253,7 +253,6 @@ onMounted(() => {
             <span class="crumb-sep">/</span>
             <span class="crumb-active">{{ topCrumb }}</span>
           </div>
-          <span class="env-badge">v{{ displayVersion }}</span>
         </div>
         <div class="top-right">
           <el-dropdown trigger="click" @command="onUserCommand">
@@ -341,23 +340,28 @@ onMounted(() => {
 }
 
 .side-desktop {
-  width: 240px;
+  width: var(--mr-sidebar-width, 240px);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   padding: 16px 12px;
   background: var(--surface-low, #1b1b1d);
   border-right: 1px solid var(--mr-border-soft);
   overflow: hidden;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .side-top {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex: 1 1 auto;
   min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .brand {
@@ -418,6 +422,8 @@ onMounted(() => {
 }
 
 .side-menu {
+  width: 100%;
+  min-width: 0 !important;
   border: none;
   border-right: none;
   background: transparent;
@@ -475,15 +481,24 @@ onMounted(() => {
 }
 
 .side-bottom {
-  flex-shrink: 0;
-  padding-top: 16px;
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  margin-top: 12px;
+  padding-top: 12px;
+  box-sizing: border-box;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  background: var(--surface-low, #1b1b1d);
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
 }
 
 .mount-pill {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 10px;
   border-radius: 8px;
   background: var(--surface-container, #222225);
@@ -491,6 +506,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  overflow: hidden;
 }
 
 .mount-pill-row {
@@ -498,6 +514,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .mount-pill-label,
@@ -505,6 +522,17 @@ onMounted(() => {
   font-family: var(--mr-font-mono);
   font-size: 11px;
   color: var(--mr-text-secondary);
+}
+
+.mount-pill-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mount-pill-pct {
+  flex-shrink: 0;
 }
 
 .mount-pill-pct.ok {
@@ -530,22 +558,33 @@ onMounted(() => {
   font-family: var(--mr-font-mono);
   font-size: 10px;
   color: var(--mr-text-muted);
+  min-width: 0;
+  max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.side-health {
+.mount-pill-health {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 2px 4px;
+  width: 100%;
+  min-width: 0;
+  margin-top: 2px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  box-sizing: border-box;
   font-family: var(--mr-font-mono);
   font-size: 11px;
+  line-height: 1.35;
   color: var(--mr-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.side-health.ok {
+.mount-pill-health.ok {
   color: var(--el-color-success);
 }
 
@@ -557,7 +596,7 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.side-health.ok .health-dot {
+.mount-pill-health.ok .health-dot {
   background: var(--el-color-success);
 }
 
@@ -618,17 +657,6 @@ onMounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.env-badge {
-  flex-shrink: 0;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-family: var(--mr-font-mono);
-  font-size: 11px;
-  color: var(--mr-text-secondary);
-  background: var(--surface-high, #2b2b2e);
-  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .top-right {
@@ -695,7 +723,7 @@ onMounted(() => {
   flex: 1;
   min-width: 0;
   overflow: auto;
-  padding: 24px;
+  padding: var(--mr-main-padding, 24px);
   background: var(--surface, #131315);
 }
 
@@ -740,10 +768,8 @@ onMounted(() => {
     padding: 0 12px;
   }
   .main-pane {
-    padding: 12px 12px 20px;
-  }
-  .env-badge {
-    display: none;
+    padding: var(--mr-main-padding, 12px);
+    padding-bottom: calc(var(--mr-main-padding, 12px) + 8px);
   }
   .user-trigger-name {
     max-width: 72px;

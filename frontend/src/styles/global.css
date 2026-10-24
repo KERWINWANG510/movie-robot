@@ -25,6 +25,10 @@
   --color-on-destructive: #111113;
   --color-ring: #f59e0b;
 
+  /* 布局：侧栏与主区内边距（吸附底栏等共用） */
+  --mr-sidebar-width: 240px;
+  --mr-main-padding: 24px;
+
   --surface-lowest: #0e0e10;
   --surface: #131315;
   --surface-low: #1b1b1d;
@@ -131,6 +135,13 @@ html.dark {
   --el-fill-color-light: #222225;
   --el-fill-color-lighter: #1b1b1d;
   --el-fill-color-blank: #18181b;
+}
+
+@media (max-width: 900px) {
+  :root {
+    --mr-sidebar-width: 0px;
+    --mr-main-padding: 12px;
+  }
 }
 
 *,

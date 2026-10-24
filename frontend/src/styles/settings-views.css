@@ -209,14 +209,17 @@
   min-height: 44px;
 }
 
-/* 共享底部吸附操作栏（用于保存按钮常驻可见） */
+/* 共享底部吸附操作栏（用于保存按钮常驻可见）
+ * left/right 对齐主内容区内边距，避免相对正文左右多出一截 */
 .mr-sticky-actionbar {
   position: fixed;
-  left: 0;
-  right: 0;
+  left: calc(var(--mr-sidebar-width, 240px) + var(--mr-main-padding, 24px));
+  right: var(--mr-main-padding, 24px);
   bottom: 0;
   z-index: 10;
+  box-sizing: border-box;
   border-top: 1px solid var(--mr-border-soft);
+  border-radius: 12px 12px 0 0;
   background: color-mix(in srgb, var(--color-card) 88%, transparent);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -230,13 +233,6 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: 10px;
-}
-
-@media (min-width: 901px) {
-  .mr-sticky-actionbar {
-    /* 避开左侧导航轨，与主内容区对齐 */
-    left: 216px;
-  }
 }
 
 @supports not (backdrop-filter: blur(10px)) {
