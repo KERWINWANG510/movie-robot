@@ -138,9 +138,46 @@ onMounted(loadList);
 
 <template>
   <div class="media-page-wrap media-wishlist" v-loading="loading">
-    <section class="media-discover-hero" aria-label="想看列表">
-      <div class="media-discover-hero__mesh" aria-hidden="true" />
+    <div class="media-page-head">
+      <div>
+        <h1 class="media-page-title">
+          <span>想看列表</span>
+          <span class="media-title-badge">WATCHLIST</span>
+        </h1>
+        <p class="media-page-desc">已加入想看的电影与剧集，便于后续整理入库。</p>
+      </div>
+      <div class="media-mode-seg" role="tablist">
+        <button
+          type="button"
+          class="media-mode-btn"
+          :class="{ active: tab === 'all' }"
+          @click="tab = 'all'"
+        >
+          <span v-if="tab === 'all'" class="mode-dot" />
+          <el-icon><Grid /></el-icon> 全部
+        </button>
+        <button
+          type="button"
+          class="media-mode-btn"
+          :class="{ active: tab === 'movie' }"
+          @click="tab = 'movie'"
+        >
+          <span v-if="tab === 'movie'" class="mode-dot" />
+          <el-icon><Film /></el-icon> 电影
+        </button>
+        <button
+          type="button"
+          class="media-mode-btn"
+          :class="{ active: tab === 'tv' }"
+          @click="tab = 'tv'"
+        >
+          <span v-if="tab === 'tv'" class="mode-dot" />
+          <el-icon><VideoCamera /></el-icon> 电视剧
+        </button>
+      </div>
+    </div>
 
+    <section class="media-discover-hero" aria-label="想看列表">
       <div class="media-search-bar">
         <div class="media-search-shell">
           <el-input
@@ -169,26 +206,16 @@ onMounted(loadList);
         </el-button>
         <el-button
           v-else
-          class="media-search-reset"
+          type="primary"
           plain
+          class="media-search-reset"
           @click="router.push({ name: 'media-browse' })"
         >
-          去影视发现
+          前往影视发现
         </el-button>
       </div>
 
       <div class="media-toolbar">
-        <el-radio-group v-model="tab" class="media-seg">
-          <el-radio-button value="all">
-            <span class="tab-label"><el-icon><Grid /></el-icon> 全部</span>
-          </el-radio-button>
-          <el-radio-button value="movie">
-            <span class="tab-label"><el-icon><Film /></el-icon> 电影</span>
-          </el-radio-button>
-          <el-radio-button value="tv">
-            <span class="tab-label"><el-icon><VideoCamera /></el-icon> 电视剧</span>
-          </el-radio-button>
-        </el-radio-group>
         <div class="media-toolbar__meta">
           <span class="media-section-chip">{{ pageTitle }}</span>
           <span v-if="isSearchMode" class="media-section-query">「{{ activeQuery }}」</span>

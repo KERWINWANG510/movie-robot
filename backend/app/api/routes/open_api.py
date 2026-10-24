@@ -16,6 +16,8 @@ from app.schemas.files import (
     FileTransferRequest,
     FileTransferResponse,
     FileTransferResultItem,
+    FolderCreateRequest,
+    FolderCreateResponse,
     FolderMergeRequest,
     FolderMergeResponse,
     FolderMergeResultItem,
@@ -42,6 +44,7 @@ from app.schemas.rename import (
 )
 from app.schemas.system_settings import TransferDestinationPublic
 from app.services.file_transfer import resolve_transfer_target_directory, transfer_paths_to_target
+from app.services.folder_create import create_folder_under_mount
 from app.services.folder_merge import merge_folder_trees_flat
 from app.services.media_subscriptions import (
     add_subscription_for_user,
@@ -165,6 +168,21 @@ async def open_destinations(
         for d in dest_rows
     ]
     return OpenDestinationsResponse(items=items)
+
+
+@router.post("/folders", response_model=FolderCreateResponse)
+async def open_create_folder(
+    body: FolderCreateRequest,
+    _token: ApiAccessToken = Depends(get_open_api_token),
+    db: AsyncSession = Depends(get_db),
+) -> FolderCreateResponse:
+    root = await _require_mount(db)
+    rel, name = create_folder_under_mount(
+        root=root,
+        parent_rel=body.parent_path,
+        name=body.name,
+    )
+    return FolderCreateResponse(path=rel, name=name)
 
 
 @router.post("/folders/merge", response_model=FolderMergeResponse)

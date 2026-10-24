@@ -12,7 +12,6 @@ import SettingsMediaView from "../views/SettingsMediaView.vue";
 import SettingsOpenApiView from "../views/SettingsOpenApiView.vue";
 import SettingsStorageView from "../views/SettingsStorageView.vue";
 import NotFoundView from "../views/NotFoundView.vue";
-import TransferView from "../views/TransferView.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -30,7 +29,7 @@ const router = createRouter({
           children: [
             { path: "", name: "rename", component: HomeView },
             { path: "merge", name: "folder-merge", component: HomeView },
-            { path: "transfer", name: "transfer", component: TransferView },
+            { path: "transfer", name: "transfer", component: HomeView },
           ],
         },
         {

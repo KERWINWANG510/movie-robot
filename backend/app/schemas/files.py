@@ -18,8 +18,29 @@ class BrowseResponse(BaseModel):
     entries: list[FileEntry] = Field(description="当前目录下的子项列表（目录优先，按名称排序）")
 
 
+class FolderCreateRequest(BaseModel):
+    """在指定父目录下新建一层文件夹。"""
+
+    parent_path: str = Field(
+        default="",
+        description="相对挂载根的父目录路径；空字符串表示挂载根",
+        examples=["downloads"],
+    )
+    name: str = Field(
+        ...,
+        min_length=1,
+        description="新文件夹名称（仅单层，不能含路径分隔符或 \\ / : * ? \" < > |）",
+        examples=["新建文件夹"],
+    )
+
+
+class FolderCreateResponse(BaseModel):
+    path: str = Field(description="新建文件夹相对挂载根的完整路径")
+    name: str = Field(description="新建文件夹名称")
+
+
 class FolderMergeRequest(BaseModel):
-    """将多个源目录内（递归）所有文件扁平移动到目标目录；重名自动加 _1、_2…"""
+    """将多个源目录内（递归）所有文件扁平移动到目标目录；重名自动加 _1、_2…；源目录清空后删除。"""
 
     source_paths: list[str] = Field(
         ...,

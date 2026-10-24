@@ -1,5 +1,15 @@
 <script setup lang="ts">
-import { ArrowLeft, Star, StarFilled } from "@element-plus/icons-vue";
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  CollectionTag,
+  Document,
+  Film,
+  Star,
+  StarFilled,
+  User,
+} from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -51,10 +61,10 @@ type MediaDetail = {
   subscribed: boolean;
 };
 
-const PERSON_CARD_WIDTH = 104;
-const PERSON_GAP = 12;
-const SIMILAR_CARD_WIDTH = 140;
-const SIMILAR_GAP = 12;
+const PERSON_CARD_WIDTH = 96;
+const PERSON_GAP = 16;
+const SIMILAR_CARD_WIDTH = 160;
+const SIMILAR_GAP = 14;
 
 const route = useRoute();
 const router = useRouter();
@@ -62,33 +72,57 @@ const loading = ref(false);
 const acting = ref(false);
 const detail = ref<MediaDetail | null>(null);
 
-const castRowRef = ref<HTMLElement | null>(null);
-const crewRowRef = ref<HTMLElement | null>(null);
+const peopleRowRef = ref<HTMLElement | null>(null);
 const similarRowRef = ref<HTMLElement | null>(null);
-const castVisible = ref(6);
-const crewVisible = ref(6);
+const peopleVisible = ref(8);
 const similarVisible = ref(5);
 
 const peopleDialogVisible = ref(false);
-const peopleDialogTitle = ref("");
-const peopleDialogRolePrefix = ref(false);
-const peopleDialogList = ref<PersonCredit[]>([]);
-
 const similarDialogVisible = ref(false);
 
-let castObserver: ResizeObserver | null = null;
-let crewObserver: ResizeObserver | null = null;
+let peopleObserver: ResizeObserver | null = null;
 let similarObserver: ResizeObserver | null = null;
 
 const mediaType = computed(() => String(route.params.type || ""));
 const tmdbId = computed(() => Number(route.params.id));
 
-const visibleCast = computed(() => (detail.value?.cast ?? []).slice(0, castVisible.value));
-const visibleCrew = computed(() => (detail.value?.crew ?? []).slice(0, crewVisible.value));
+/** 演职员：演员优先，其后职员（去重） */
+const peopleCredits = computed(() => {
+  if (!detail.value) return [] as (PersonCredit & { kind: "cast" | "crew" })[];
+  const seen = new Set<number>();
+  const out: (PersonCredit & { kind: "cast" | "crew" })[] = [];
+  for (const p of detail.value.cast ?? []) {
+    if (seen.has(p.person_id)) continue;
+    seen.add(p.person_id);
+    out.push({ ...p, kind: "cast" });
+  }
+  for (const p of detail.value.crew ?? []) {
+    if (seen.has(p.person_id)) continue;
+    seen.add(p.person_id);
+    out.push({ ...p, kind: "crew" });
+  }
+  return out;
+});
+
+const visiblePeople = computed(() => peopleCredits.value.slice(0, peopleVisible.value));
 const visibleSimilar = computed(() => (detail.value?.similar ?? []).slice(0, similarVisible.value));
-const castHasMore = computed(() => (detail.value?.cast?.length ?? 0) > castVisible.value);
-const crewHasMore = computed(() => (detail.value?.crew?.length ?? 0) > crewVisible.value);
+const peopleHasMore = computed(() => peopleCredits.value.length > peopleVisible.value);
 const similarHasMore = computed(() => (detail.value?.similar?.length ?? 0) > similarVisible.value);
+
+const displayTitle = computed(() => {
+  if (!detail.value) return "";
+  const { title, original_title } = detail.value;
+  if (original_title && original_title !== title) return `${title} / ${original_title}`;
+  return title;
+});
+
+const releaseYear = computed(() => {
+  const d = detail.value?.release_date;
+  if (!d || d.length < 4) return "";
+  return d.slice(0, 4);
+});
+
+const genreLabel = computed(() => (detail.value?.genres ?? []).map((g) => g.name).join(" · "));
 
 function calcVisibleCount(el: HTMLElement | null, cardWidth: number, gap: number, fallback: number): number {
   if (!el) return fallback;
@@ -98,12 +132,8 @@ function calcVisibleCount(el: HTMLElement | null, cardWidth: number, gap: number
   return Math.max(2, n);
 }
 
-function syncCastVisible() {
-  castVisible.value = calcVisibleCount(castRowRef.value, PERSON_CARD_WIDTH, PERSON_GAP, 6);
-}
-
-function syncCrewVisible() {
-  crewVisible.value = calcVisibleCount(crewRowRef.value, PERSON_CARD_WIDTH, PERSON_GAP, 6);
+function syncPeopleVisible() {
+  peopleVisible.value = calcVisibleCount(peopleRowRef.value, PERSON_CARD_WIDTH, PERSON_GAP, 8);
 }
 
 function syncSimilarVisible() {
@@ -111,29 +141,21 @@ function syncSimilarVisible() {
 }
 
 function bindRowObservers() {
-  castObserver?.disconnect();
-  crewObserver?.disconnect();
+  peopleObserver?.disconnect();
   similarObserver?.disconnect();
-  castObserver = null;
-  crewObserver = null;
+  peopleObserver = null;
   similarObserver = null;
 
   if (typeof ResizeObserver === "undefined") {
-    syncCastVisible();
-    syncCrewVisible();
+    syncPeopleVisible();
     syncSimilarVisible();
     return;
   }
 
-  if (castRowRef.value) {
-    castObserver = new ResizeObserver(() => syncCastVisible());
-    castObserver.observe(castRowRef.value);
-    syncCastVisible();
-  }
-  if (crewRowRef.value) {
-    crewObserver = new ResizeObserver(() => syncCrewVisible());
-    crewObserver.observe(crewRowRef.value);
-    syncCrewVisible();
+  if (peopleRowRef.value) {
+    peopleObserver = new ResizeObserver(() => syncPeopleVisible());
+    peopleObserver.observe(peopleRowRef.value);
+    syncPeopleVisible();
   }
   if (similarRowRef.value) {
     similarObserver = new ResizeObserver(() => syncSimilarVisible());
@@ -204,22 +226,17 @@ function openSimilar(item: MediaCard) {
   });
 }
 
-function openPeopleMore(kind: "cast" | "crew") {
-  if (!detail.value) return;
-  if (kind === "cast") {
-    peopleDialogTitle.value = "全部演员";
-    peopleDialogRolePrefix.value = true;
-    peopleDialogList.value = detail.value.cast ?? [];
-  } else {
-    peopleDialogTitle.value = "全部职员";
-    peopleDialogRolePrefix.value = false;
-    peopleDialogList.value = detail.value.crew ?? [];
-  }
+function openPeopleMore() {
   peopleDialogVisible.value = true;
 }
 
 function openSimilarMore() {
   similarDialogVisible.value = true;
+}
+
+function personRoleText(p: PersonCredit & { kind: "cast" | "crew" }) {
+  if (!p.role) return p.kind === "cast" ? "演员" : "职员";
+  return p.kind === "cast" ? `饰 ${p.role}` : p.role;
 }
 
 onMounted(loadDetail);
@@ -231,177 +248,216 @@ watch(
 );
 
 onBeforeUnmount(() => {
-  castObserver?.disconnect();
-  crewObserver?.disconnect();
+  peopleObserver?.disconnect();
   similarObserver?.disconnect();
 });
 </script>
 
 <template>
-  <div class="media-page-wrap" v-loading="loading">
-    <div class="media-toolbar">
-      <el-button text @click="goBack">
-        <el-icon><ArrowLeft /></el-icon>
-        返回
-      </el-button>
-    </div>
-
+  <div class="media-detail-page" v-loading="loading">
     <div v-if="!loading && !detail" class="media-empty-hint">未找到该条目</div>
 
-    <div v-else-if="detail" class="media-detail">
-      <div class="media-detail__poster-wrap">
-        <img
-          v-if="detail.poster_url"
-          class="media-detail__poster"
-          :src="detail.poster_url"
-          :alt="detail.title"
-        />
-        <div v-else class="media-card__poster-ph">无海报</div>
-      </div>
-      <div>
-        <h1 class="media-detail__title">{{ detail.title }}</h1>
-        <p v-if="detail.original_title && detail.original_title !== detail.title" class="media-detail__sub">
-          {{ detail.original_title }}
-        </p>
-        <div class="media-detail__tags">
-          <el-tag size="small" effect="plain">{{ detail.media_type === "tv" ? "电视剧" : "电影" }}</el-tag>
-          <el-tag v-if="detail.release_date" size="small" type="info" effect="plain">{{
-            detail.release_date
-          }}</el-tag>
-          <el-tag v-if="detail.vote_average" size="small" type="warning" effect="plain">
-            ★ {{ detail.vote_average.toFixed(1) }}
-            <span v-if="detail.vote_count">（{{ detail.vote_count }}）</span>
-          </el-tag>
-          <el-tag v-if="detail.runtime" size="small" effect="plain">{{ detail.runtime }} 分钟</el-tag>
-          <el-tag v-for="g in detail.genres" :key="g.id" size="small" effect="plain">{{ g.name }}</el-tag>
-        </div>
-        <div class="media-detail__actions">
-          <el-button
-            :type="detail.subscribed ? 'default' : 'primary'"
-            :loading="acting"
-            @click="toggleSubscribe"
-          >
-            <el-icon class="btn-ic">
-              <StarFilled v-if="detail.subscribed" />
-              <Star v-else />
-            </el-icon>
-            {{ detail.subscribed ? "取消想看" : "加入想看" }}
-          </el-button>
-          <el-button @click="router.push({ name: 'media-subscriptions' })">查看想看列表</el-button>
-        </div>
-        <p class="media-detail__overview">{{ detail.overview || "暂无简介" }}</p>
-      </div>
-    </div>
+    <template v-else-if="detail">
+      <!-- Hero：全幅 backdrop + 海报 + 元信息 -->
+      <header
+        class="md-hero"
+        :style="
+          detail.backdrop_url
+            ? { '--detail-backdrop': `url(${detail.backdrop_url})` }
+            : undefined
+        "
+      >
+        <div class="md-hero__backdrop" aria-hidden="true" />
+        <div class="md-hero__veil" aria-hidden="true" />
 
-    <section v-if="detail && detail.cast?.length" class="media-credits">
-      <div class="media-credits__head">
-        <h2 class="media-credits__title">演员</h2>
-        <el-button v-if="castHasMore" text type="primary" @click="openPeopleMore('cast')">更多</el-button>
-      </div>
-      <div ref="castRowRef" class="media-credits__row">
-        <div
-          v-for="p in visibleCast"
-          :key="`cast-${p.person_id}-${p.role}`"
-          class="media-person"
-        >
-          <img
-            v-if="p.profile_url"
-            class="media-person__avatar"
-            :src="p.profile_url"
-            :alt="p.name"
-            loading="lazy"
-          />
-          <div v-else class="media-person__avatar media-person__avatar--ph">无图</div>
-          <div class="media-person__name">{{ p.name }}</div>
-          <div v-if="p.role" class="media-person__role">饰 {{ p.role }}</div>
+        <div class="md-hero__top">
+          <button type="button" class="md-back" @click="goBack">
+            <el-icon><ArrowLeft /></el-icon>
+            返回影视发现
+          </button>
         </div>
-      </div>
-    </section>
 
-    <section v-if="detail && detail.crew?.length" class="media-credits">
-      <div class="media-credits__head">
-        <h2 class="media-credits__title">职员</h2>
-        <el-button v-if="crewHasMore" text type="primary" @click="openPeopleMore('crew')">更多</el-button>
-      </div>
-      <div ref="crewRowRef" class="media-credits__row">
-        <div
-          v-for="p in visibleCrew"
-          :key="`crew-${p.person_id}-${p.role}`"
-          class="media-person"
-        >
-          <img
-            v-if="p.profile_url"
-            class="media-person__avatar"
-            :src="p.profile_url"
-            :alt="p.name"
-            loading="lazy"
-          />
-          <div v-else class="media-person__avatar media-person__avatar--ph">无图</div>
-          <div class="media-person__name">{{ p.name }}</div>
-          <div v-if="p.role" class="media-person__role">{{ p.role }}</div>
-        </div>
-      </div>
-    </section>
+        <div class="md-hero__body">
+          <div class="md-poster">
+            <img
+              v-if="detail.poster_url"
+              :src="detail.poster_url"
+              :alt="detail.title"
+            />
+            <div v-else class="md-poster__ph">无海报</div>
+          </div>
 
-    <section v-if="detail && detail.similar?.length" class="media-credits">
-      <div class="media-credits__head">
-        <h2 class="media-credits__title">相似推荐</h2>
-        <el-button v-if="similarHasMore" text type="primary" @click="openSimilarMore">更多</el-button>
-      </div>
-      <div ref="similarRowRef" class="media-similar-row">
-        <article
-          v-for="item in visibleSimilar"
-          :key="`similar-${item.media_type}-${item.tmdb_id}`"
-          class="media-card media-similar-card"
-          role="button"
-          tabindex="0"
-          @click="openSimilar(item)"
-          @keydown.enter="openSimilar(item)"
-        >
-          <img
-            v-if="item.poster_url"
-            class="media-card__poster"
-            :src="item.poster_url"
-            :alt="item.title"
-            loading="lazy"
-          />
-          <div v-else class="media-card__poster-ph">无海报</div>
-          <div class="media-card__body">
-            <h3 class="media-card__title">{{ item.title }}</h3>
-            <div class="media-card__meta">
-              <span v-if="item.vote_average" class="media-card__score">★ {{ item.vote_average.toFixed(1) }}</span>
-              <span v-if="item.release_date" class="media-card__date">{{ item.release_date }}</span>
+          <div class="md-hero__info">
+            <div class="md-badges">
+              <span class="md-badge md-badge--type">
+                {{ detail.media_type === "tv" ? "电视剧" : "电影" }}
+              </span>
+              <span v-if="detail.vote_average" class="md-badge md-badge--score">
+                TMDB {{ detail.vote_average.toFixed(1) }}
+              </span>
+              <span v-if="detail.status" class="md-badge">{{ detail.status }}</span>
+            </div>
+
+            <h1 class="md-title">{{ displayTitle }}</h1>
+
+            <p v-if="detail.overview" class="md-hero-synopsis">{{ detail.overview }}</p>
+
+            <div class="md-meta">
+              <span v-if="releaseYear" class="md-meta__item">
+                <el-icon><Calendar /></el-icon>
+                {{ releaseYear }}
+              </span>
+              <span v-if="detail.runtime" class="md-meta__item">
+                <el-icon><Clock /></el-icon>
+                {{ detail.runtime }} 分钟
+              </span>
+              <span v-if="genreLabel" class="md-meta__item">
+                <el-icon><Film /></el-icon>
+                {{ genreLabel }}
+              </span>
+              <span v-if="detail.release_date" class="md-meta__item">
+                <el-icon><CollectionTag /></el-icon>
+                {{ detail.release_date }}
+              </span>
+            </div>
+
+            <div class="md-actions">
+              <el-button
+                type="primary"
+                size="large"
+                class="md-cta"
+                :loading="acting"
+                @click="toggleSubscribe"
+              >
+                <el-icon class="btn-ic">
+                  <StarFilled v-if="detail.subscribed" />
+                  <Star v-else />
+                </el-icon>
+                {{ detail.subscribed ? "已在想看清单" : "加入想看清单" }}
+              </el-button>
+              <el-button size="large" plain class="md-cta-ghost" @click="router.push({ name: 'media-subscriptions' })">
+                查看想看列表
+              </el-button>
             </div>
           </div>
-        </article>
+        </div>
+      </header>
+
+      <div class="md-body">
+        <!-- 剧情简介 -->
+        <section class="md-section">
+          <div class="md-section__head">
+            <el-icon class="md-section__ic"><Document /></el-icon>
+            <h2 class="md-section__title">
+              剧情简介
+              <span class="md-section__en">Overview</span>
+            </h2>
+          </div>
+          <p class="md-overview-text">{{ detail.overview || "暂无简介" }}</p>
+        </section>
+
+        <!-- 主要演职员 -->
+        <section v-if="peopleCredits.length" class="md-section">
+          <div class="md-section__head">
+            <el-icon class="md-section__ic"><User /></el-icon>
+            <h2 class="md-section__title">
+              主要演职员
+              <span class="md-section__en">Cast &amp; Crew</span>
+            </h2>
+            <el-button v-if="peopleHasMore" text type="primary" class="md-more" @click="openPeopleMore">
+              更多
+            </el-button>
+          </div>
+          <div ref="peopleRowRef" class="md-people-row">
+            <div
+              v-for="p in visiblePeople"
+              :key="`p-${p.kind}-${p.person_id}-${p.role}`"
+              class="md-person"
+            >
+              <img
+                v-if="p.profile_url"
+                class="md-person__avatar"
+                :src="p.profile_url"
+                :alt="p.name"
+                loading="lazy"
+              />
+              <div v-else class="md-person__avatar md-person__avatar--ph">无图</div>
+              <div class="md-person__name">{{ p.name }}</div>
+              <div class="md-person__role">{{ personRoleText(p) }}</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 相似推荐 -->
+        <section v-if="detail.similar?.length" class="md-section">
+          <div class="md-section__head">
+            <el-icon class="md-section__ic"><StarFilled /></el-icon>
+            <h2 class="md-section__title">
+              类似影视作品推荐
+              <span class="md-section__en">Recommended</span>
+            </h2>
+            <el-button v-if="similarHasMore" text type="primary" class="md-more" @click="openSimilarMore">
+              更多
+            </el-button>
+          </div>
+          <div ref="similarRowRef" class="md-similar-row">
+            <article
+              v-for="item in visibleSimilar"
+              :key="`similar-${item.media_type}-${item.tmdb_id}`"
+              class="md-similar-card"
+              role="button"
+              tabindex="0"
+              @click="openSimilar(item)"
+              @keydown.enter="openSimilar(item)"
+            >
+              <div class="md-similar-card__poster">
+                <img
+                  v-if="item.poster_url"
+                  :src="item.poster_url"
+                  :alt="item.title"
+                  loading="lazy"
+                />
+                <div v-else class="md-similar-card__ph">无海报</div>
+                <span v-if="item.vote_average" class="md-similar-card__score">
+                  ★ {{ item.vote_average.toFixed(1) }}
+                </span>
+              </div>
+              <div class="md-similar-card__body">
+                <h3 class="md-similar-card__title">{{ item.title }}</h3>
+                <p class="md-similar-card__meta">
+                  <span v-if="item.release_date">{{ item.release_date.slice(0, 4) }}</span>
+                  <span>{{ item.media_type === "tv" ? "电视剧" : "电影" }}</span>
+                </p>
+              </div>
+            </article>
+          </div>
+        </section>
       </div>
-    </section>
+    </template>
 
     <el-dialog
       v-model="peopleDialogVisible"
-      :title="peopleDialogTitle"
+      title="全部演职员"
       width="min(920px, 94vw)"
       destroy-on-close
       append-to-body
     >
-      <div class="media-credits-dialog__grid">
+      <div class="md-people-dialog">
         <div
-          v-for="p in peopleDialogList"
-          :key="`more-${p.person_id}-${p.role}`"
-          class="media-person"
+          v-for="p in peopleCredits"
+          :key="`more-${p.kind}-${p.person_id}-${p.role}`"
+          class="md-person"
         >
           <img
             v-if="p.profile_url"
-            class="media-person__avatar"
+            class="md-person__avatar"
             :src="p.profile_url"
             :alt="p.name"
             loading="lazy"
           />
-          <div v-else class="media-person__avatar media-person__avatar--ph">无图</div>
-          <div class="media-person__name">{{ p.name }}</div>
-          <div v-if="p.role" class="media-person__role">
-            {{ peopleDialogRolePrefix ? `饰 ${p.role}` : p.role }}
-          </div>
+          <div v-else class="md-person__avatar md-person__avatar--ph">无图</div>
+          <div class="md-person__name">{{ p.name }}</div>
+          <div class="md-person__role">{{ personRoleText(p) }}</div>
         </div>
       </div>
     </el-dialog>
@@ -409,34 +465,38 @@ onBeforeUnmount(() => {
     <el-dialog
       v-model="similarDialogVisible"
       title="全部相似推荐"
-      width="min(920px, 94vw)"
+      width="min(960px, 94vw)"
       destroy-on-close
       append-to-body
     >
-      <div class="media-similar-dialog__grid">
+      <div class="md-similar-dialog">
         <article
           v-for="item in detail?.similar ?? []"
           :key="`similar-more-${item.media_type}-${item.tmdb_id}`"
-          class="media-card"
+          class="md-similar-card"
           role="button"
           tabindex="0"
           @click="openSimilar(item)"
           @keydown.enter="openSimilar(item)"
         >
-          <img
-            v-if="item.poster_url"
-            class="media-card__poster"
-            :src="item.poster_url"
-            :alt="item.title"
-            loading="lazy"
-          />
-          <div v-else class="media-card__poster-ph">无海报</div>
-          <div class="media-card__body">
-            <h3 class="media-card__title">{{ item.title }}</h3>
-            <div class="media-card__meta">
-              <span v-if="item.vote_average" class="media-card__score">★ {{ item.vote_average.toFixed(1) }}</span>
-              <span v-if="item.release_date" class="media-card__date">{{ item.release_date }}</span>
-            </div>
+          <div class="md-similar-card__poster">
+            <img
+              v-if="item.poster_url"
+              :src="item.poster_url"
+              :alt="item.title"
+              loading="lazy"
+            />
+            <div v-else class="md-similar-card__ph">无海报</div>
+            <span v-if="item.vote_average" class="md-similar-card__score">
+              ★ {{ item.vote_average.toFixed(1) }}
+            </span>
+          </div>
+          <div class="md-similar-card__body">
+            <h3 class="md-similar-card__title">{{ item.title }}</h3>
+            <p class="md-similar-card__meta">
+              <span v-if="item.release_date">{{ item.release_date.slice(0, 4) }}</span>
+              <span>{{ item.media_type === "tv" ? "电视剧" : "电影" }}</span>
+            </p>
           </div>
         </article>
       </div>

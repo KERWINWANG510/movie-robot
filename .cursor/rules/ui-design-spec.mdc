@@ -1,0 +1,27 @@
+---
+description: 按 Stitch《Movie Robot UI 设计开发规范》开发前端界面
+alwaysApply: true
+---
+
+# UI 设计规范（强制）
+
+后续在本仓库内的 **前端界面、样式、组件与页面改动** 必须遵循：
+
+[`design-system/movie-robot/UI-SPEC.md`](design-system/movie-robot/UI-SPEC.md)
+
+（来源：Stitch 项目 movie-robot · Cinematic Studio Dark）
+
+## 必须遵守
+
+1. **严格深色工作站风**：主背景 `#131315`，侧栏/面板 `#1b1b1d`，卡片/输入容器 `#222225`，分割线 `rgba(255,255,255,0.08)`。
+2. **品牌主色 Amber `#f59e0b`**：主 CTA、选中态、高亮；成功用 Emerald `#10b981`；错误用 Red `#ef4444`。
+3. **字体**：正文/标题 `Plus Jakarta Sans`（含中文系统兜底）；路径、文件名、规格、代码用 `JetBrains Mono`。
+4. **圆角**：小控件 4px、按钮/输入 8px、卡片/对话框 12px。
+5. **布局**：信息密度偏紧凑、扁平少重阴影；工作台优先「左目录 / 右预览」双栏。
+6. **动效**：弱反馈即可（如 `active:scale-[0.98]`、`transition` 约 150ms），避免花哨发光与堆叠阴影。
+
+## 技术栈映射
+
+本仓库使用 **Vue 3 + Element Plus**。规范中的 Tailwind 类名是语义参考：实现时映射到 CSS 变量与 EP 主题，不要为了类名而强行引入 Tailwind。
+
+与旧版 [`design-system/movie-robot/MASTER.md`](design-system/movie-robot/MASTER.md) 冲突时，**以 `UI-SPEC.md` 为准**。

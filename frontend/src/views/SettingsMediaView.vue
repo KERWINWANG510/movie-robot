@@ -5,6 +5,7 @@ import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import http from "../api/http";
+import SettingsSubNav from "../components/SettingsSubNav.vue";
 import "../styles/settings-views.css";
 import { useBrowsePrefsStore } from "../stores/browsePrefs";
 import { settingsErrMsg } from "../utils/settingsHttp";
@@ -82,11 +83,15 @@ onMounted(() => {
 <template>
   <div class="settings-page-wrap has-sticky-actionbar" v-loading="loading">
     <div class="page-head mr-page-intro">
-      <h1 class="mr-page-title">影视数据源</h1>
+      <h1 class="settings-page-title">
+        <span>影视数据源</span>
+        <span class="settings-title-badge">TMDB</span>
+      </h1>
       <p class="mr-page-desc">
         配置 TMDB API Key 后，可浏览正在热映的电影、正在热播的电视剧，并将条目加入「想看」列表。
       </p>
     </div>
+    <SettingsSubNav />
 
     <el-card class="block-card" shadow="never">
       <template #header>

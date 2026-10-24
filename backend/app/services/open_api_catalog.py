@@ -270,19 +270,57 @@ def build_open_api_catalog() -> OpenApiCatalogResponse:
             error_codes=_COMMON_ERRORS[:1],
         ),
         OpenApiCatalogEndpoint(
+            id="folders-create",
+            method="POST",
+            path="/api/v1/open/folders",
+            summary="新建文件夹",
+            description="在指定父目录（相对挂载根）下新建一层文件夹。",
+            notes=[
+                "name 仅为单层名称，不能包含路径分隔符或 \\ / : * ? \" < > |。",
+                "parent_path 留空表示在挂载根下创建；父目录必须已存在。",
+                "若目标位置已有同名文件或文件夹，返回 409。",
+            ],
+            headers=[_AUTH_HEADER],
+            request_fields=[
+                _f(
+                    "parent_path",
+                    "string",
+                    "相对挂载根的父目录；空字符串表示挂载根",
+                    required=False,
+                    example="downloads",
+                ),
+                _f(
+                    "name",
+                    "string",
+                    "新文件夹名称（单层）",
+                    required=True,
+                    example="新建文件夹",
+                ),
+            ],
+            response_fields=[
+                _f("path", "string", "新建文件夹相对挂载根的完整路径", required=True, example="downloads/新建文件夹"),
+                _f("name", "string", "新建文件夹名称", required=True, example="新建文件夹"),
+            ],
+            body_example={"parent_path": "downloads", "name": "新建文件夹"},
+            response_example={"path": "downloads/新建文件夹", "name": "新建文件夹"},
+            error_codes=_COMMON_ERRORS,
+        ),
+        OpenApiCatalogEndpoint(
             id="folders-merge",
             method="POST",
             path="/api/v1/open/folders/merge",
             summary="文件夹合并",
             description=(
                 "将多个源文件夹内全部文件（递归含子目录）扁平移动到目标目录；"
-                "不保留子目录结构；目标侧重名自动追加 _1、_2… 后缀。"
+                "不保留子目录结构；目标侧重名自动追加 _1、_2… 后缀；"
+                "源目录内文件全部移走后会删除原文件夹。"
             ),
             notes=[
                 "source_paths 至少 2 个，且均为相对挂载根的文件夹。",
                 "源文件夹之间不能互为父子关系。",
                 "target_path 不能落在某个源文件夹内部；不存在时会自动创建（支持多级）。",
                 "results 按「每个被移动的文件」返回，不是按源文件夹返回。",
+                "某个源文件夹内若仍有未成功移走的文件，则保留该源文件夹；否则删除整个源目录树。",
             ],
             headers=[_AUTH_HEADER],
             request_fields=[
@@ -541,7 +579,8 @@ def build_open_api_catalog() -> OpenApiCatalogResponse:
                 "destination_id 须先通过 GET /open/destinations 获取，且 ready=true。",
                 "paths 不可互为包含关系（例如不要同时选文件夹与其中的文件）。",
                 "传输目标不能与某个源路径相同，也不能位于某个源路径内部。",
-                "目标侧重名会自动加 _1、_2…；目录整体传输重名时使用目录名_1 形式。",
+                "目标侧文件重名会自动加 _1、_2…。",
+                "目录整体传输时若目标已存在同名文件夹，则进入该文件夹继续传输（不改目录名）；仅当同名路径是文件时才对目录名去重。",
                 "mode=move 会删除源路径；mode=copy 保留源文件。",
             ],
             headers=[_AUTH_HEADER],

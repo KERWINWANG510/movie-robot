@@ -1,0 +1,444 @@
+<script setup lang="ts">
+import { Upload } from "@element-plus/icons-vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { computed, onMounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+
+import http from "../api/http";
+import OpResultDialog, { type OpResultItem } from "./OpResultDialog.vue";
+import { useBrowsePrefsStore } from "../stores/browsePrefs";
+import { errMsg } from "../utils/errMsg";
+import { formatBytes } from "../utils/formatBytes";
+
+type TransferDest = { id: number; label: string; path: string; ready: boolean };
+
+type StreamEvent = {
+  event: string;
+  done?: number;
+  total?: number;
+  current?: string;
+  unit?: "bytes" | "items";
+  message?: string;
+  results?: { source_path: string; dest_path: string; ok: boolean; message: string | null }[];
+  ok_count?: number;
+  failed_count?: number;
+};
+
+const props = defineProps<{
+  selectedPaths: string[];
+}>();
+
+const emit = defineEmits<{
+  done: [];
+}>();
+
+const router = useRouter();
+const route = useRoute();
+const prefs = useBrowsePrefsStore();
+
+const transferDestinations = ref<TransferDest[]>([]);
+const selectedDestinationId = ref<number | null>(null);
+const transferLoading = ref(false);
+
+const progressOpen = ref(false);
+const progressDone = ref(0);
+const progressTotal = ref(0);
+const progressCurrent = ref("");
+const progressUnit = ref<"bytes" | "items">("bytes");
+const progressPercent = computed(() => {
+  if (progressTotal.value <= 0) return 0;
+  return Math.min(100, Math.round((progressDone.value / progressTotal.value) * 100));
+});
+
+const progressMetaText = computed(() => {
+  if (progressTotal.value <= 0) return "准备中…";
+  if (progressUnit.value === "bytes") {
+    return `${formatBytes(progressDone.value)} / ${formatBytes(progressTotal.value)}`;
+  }
+  return `${progressDone.value} / ${progressTotal.value}`;
+});
+
+const resultOpen = ref(false);
+const resultItems = ref<OpResultItem[]>([]);
+const resultCanRetry = ref(false);
+let lastTransferPayload: {
+  paths: string[];
+  mode: "copy" | "move";
+  destination_id: number;
+} | null = null;
+
+const hasAnyDestination = computed(() => transferDestinations.value.length > 0);
+const hasReadyDestination = computed(() => transferDestinations.value.some((d) => d.ready));
+
+const selectedDest = computed(
+  () => transferDestinations.value.find((d) => d.id === selectedDestinationId.value) ?? null,
+);
+
+const transferAllowed = computed(
+  () => Boolean(selectedDest.value?.ready && props.selectedPaths.length > 0),
+);
+
+function pickDestination(list: TransferDest[]) {
+  const saved = prefs.savedTransferDestId;
+  if (saved != null) {
+    const hit = list.find((d) => d.id === saved && d.ready);
+    if (hit) {
+      selectedDestinationId.value = hit.id;
+      return;
+    }
+  }
+  const firstReady = list.find((d) => d.ready);
+  selectedDestinationId.value = firstReady?.id ?? list[0]?.id ?? null;
+}
+
+async function loadDestinations() {
+  try {
+    const { data } = await http.get<{ transfer_destinations: TransferDest[] }>("/settings");
+    transferDestinations.value = data.transfer_destinations ?? [];
+    pickDestination(transferDestinations.value);
+  } catch (e: unknown) {
+    ElMessage.error(errMsg(e));
+    transferDestinations.value = [];
+    selectedDestinationId.value = null;
+  }
+}
+
+watch(selectedDestinationId, (id) => {
+  if (id != null) prefs.savedTransferDestId = id;
+});
+
+async function transferWithoutStream(payload: {
+  paths: string[];
+  mode: "copy" | "move";
+  destination_id: number;
+}): Promise<StreamEvent> {
+  const { data } = await http.post<{
+    results: { source_path: string; dest_path: string; ok: boolean; message: string | null }[];
+    ok_count: number;
+    failed_count: number;
+  }>("/files/transfer", payload);
+  progressDone.value = progressTotal.value > 0 ? progressTotal.value : 1;
+  progressTotal.value = progressTotal.value > 0 ? progressTotal.value : 1;
+  return {
+    event: "done",
+    results: data.results,
+    ok_count: data.ok_count,
+    failed_count: data.failed_count,
+  };
+}
+
+async function consumeTransferStream(payload: {
+  paths: string[];
+  mode: "copy" | "move";
+  destination_id: number;
+}): Promise<StreamEvent> {
+  const res = await fetch("/api/v1/files/transfer/stream", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json", Accept: "application/x-ndjson" },
+    body: JSON.stringify(payload),
+  });
+  if (res.status === 404) {
+    return transferWithoutStream(payload);
+  }
+  if (!res.ok) {
+    let detail = `传输失败（${res.status}）`;
+    try {
+      const j = (await res.json()) as { detail?: unknown };
+      if (typeof j.detail === "string") detail = j.detail;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(detail);
+  }
+  if (!res.body) throw new Error("浏览器不支持流式读取传输进度");
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  let doneEv: StreamEvent | null = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const lines = buf.split("\n");
+    buf = lines.pop() ?? "";
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      const ev = JSON.parse(trimmed) as StreamEvent;
+      if (ev.event === "start" || ev.event === "progress" || ev.event === "complete") {
+        if (typeof ev.total === "number") progressTotal.value = ev.total;
+        if (typeof ev.done === "number") progressDone.value = ev.done;
+        if (typeof ev.current === "string") progressCurrent.value = ev.current;
+        if (ev.unit === "bytes" || ev.unit === "items") progressUnit.value = ev.unit;
+      } else if (ev.event === "error") {
+        throw new Error(ev.message || "传输失败");
+      } else if (ev.event === "done") {
+        doneEv = ev;
+      }
+    }
+  }
+  if (buf.trim()) {
+    const ev = JSON.parse(buf.trim()) as StreamEvent;
+    if (ev.event === "error") throw new Error(ev.message || "传输失败");
+    if (ev.event === "done") doneEv = ev;
+  }
+  if (!doneEv) throw new Error("传输未返回完整结果");
+  return doneEv;
+}
+
+async function runTransfer(pathsOverride?: string[]) {
+  const paths = pathsOverride ?? props.selectedPaths;
+  if (paths.length === 0) {
+    ElMessage.warning("请先勾选要传输的文件或文件夹");
+    return;
+  }
+  if (!selectedDestinationId.value || !selectedDest.value?.ready) {
+    ElMessage.warning("请选择一个可用的传输目标（路径须已存在且为目录）");
+    return;
+  }
+  const mode = prefs.transferMode;
+  const verb = mode === "copy" ? "复制" : "移动";
+  const label = selectedDest.value.label;
+  const skipConfirm = mode === "copy" && prefs.skipCopyConfirm;
+  if (!skipConfirm) {
+    try {
+      await ElMessageBox.confirm(
+        `将把所选 ${paths.length} 项${verb}到「${label}」。文件重名会自动加 _1、_2 等后缀；若目标已有同名文件夹则进入该文件夹继续传输。是否继续？`,
+        `文件传输（${verb}）`,
+        { type: "warning", confirmButtonText: "开始传输", cancelButtonText: "取消" },
+      );
+    } catch {
+      return;
+    }
+  }
+  transferLoading.value = true;
+  progressDone.value = 0;
+  progressTotal.value = 0;
+  progressCurrent.value = "";
+  progressUnit.value = "bytes";
+  progressOpen.value = true;
+  const payload = {
+    paths,
+    mode,
+    destination_id: selectedDestinationId.value,
+  };
+  try {
+    const data = await consumeTransferStream(payload);
+    const results = data.results ?? [];
+    const okCount = data.ok_count ?? results.filter((r) => r.ok).length;
+    const failedCount = data.failed_count ?? results.filter((r) => !r.ok).length;
+    const items: OpResultItem[] = results.map((r, i) => ({
+      key: `${r.source_path}-${i}`,
+      source: r.source_path,
+      dest: r.dest_path,
+      ok: r.ok,
+      message: r.message,
+    }));
+    if (failedCount === 0) {
+      ElMessage.success(`已传输 ${okCount} 项`);
+    } else {
+      ElMessage.warning(`完成：成功 ${okCount}，失败 ${failedCount}`);
+    }
+    lastTransferPayload = payload;
+    resultItems.value = items;
+    resultCanRetry.value = failedCount > 0;
+    resultOpen.value = true;
+    emit("done");
+  } catch (e: unknown) {
+    ElMessage.error(e instanceof Error ? e.message : errMsg(e));
+  } finally {
+    progressOpen.value = false;
+    transferLoading.value = false;
+  }
+}
+
+async function onResultRetry(failed: OpResultItem[]) {
+  resultOpen.value = false;
+  if (!lastTransferPayload) return;
+  const paths = failed.map((f) => f.source);
+  await runTransfer(paths);
+}
+
+function goSettings() {
+  prefs.setReturnTo(route.fullPath);
+  router.push({ name: "settings-storage" });
+}
+
+function openTargetInBrowse() {
+  void ElMessageBox.alert(
+    "传输目标为外部目录时无法在挂载浏览中打开；请在系统配置中查看目标路径。",
+    "目标说明",
+    {
+      confirmButtonText: "知道了",
+      type: "info",
+      closeOnClickModal: false,
+      closeOnPressEscape: true,
+      showClose: true,
+    },
+  );
+}
+
+defineExpose({
+  runTransfer,
+  reloadDestinations: loadDestinations,
+});
+
+onMounted(() => {
+  void loadDestinations();
+});
+</script>
+
+<template>
+  <div class="transfer-panel">
+    <el-alert v-if="!hasAnyDestination" type="warning" :closable="false" class="mb-alert" show-icon>
+      <template #title>尚未配置传输目标</template>
+      请先在「系统配置 → 存储挂载」中添加至少一个传输目标，保存后即可选择。
+      <div class="alert-actions">
+        <el-button type="primary" size="small" @click="goSettings">前往系统配置</el-button>
+      </div>
+    </el-alert>
+    <el-alert
+      v-else-if="!hasReadyDestination"
+      type="warning"
+      :closable="false"
+      class="mb-alert"
+      show-icon
+    >
+      <template #title>当前没有可用的传输目标</template>
+      已配置的目录在服务端不存在或不可访问。请检查挂载、权限与路径。
+      <div class="alert-actions">
+        <el-button type="primary" size="small" @click="goSettings">前往系统配置</el-button>
+      </div>
+    </el-alert>
+
+    <div class="dest-select-row">
+      <span class="mode-label">传输目标</span>
+      <el-select
+        v-model="selectedDestinationId"
+        placeholder="请选择传输目标"
+        class="dest-select"
+        filterable
+        :disabled="!hasAnyDestination"
+      >
+        <el-option
+          v-for="d in transferDestinations"
+          :key="d.id"
+          :label="d.ready ? d.label : `${d.label}（路径不可用）`"
+          :value="d.id"
+          :disabled="!d.ready"
+        />
+      </el-select>
+    </div>
+    <div class="mode-row">
+      <span class="mode-label">传输方式</span>
+      <el-radio-group v-model="prefs.transferMode">
+        <el-radio-button value="copy">复制</el-radio-button>
+        <el-radio-button value="move">剪切</el-radio-button>
+      </el-radio-group>
+      <el-checkbox
+        v-if="prefs.transferMode === 'copy'"
+        v-model="prefs.skipCopyConfirm"
+        size="small"
+      >
+        复制时跳过确认
+      </el-checkbox>
+    </div>
+    <div class="mr-actions" style="margin-top: 10px">
+      <el-button type="primary" :loading="transferLoading" :disabled="!transferAllowed" @click="runTransfer()">
+        <el-icon class="btn-ic"><Upload /></el-icon>
+        传输到所选目标
+      </el-button>
+      <el-button text type="primary" @click="openTargetInBrowse">查看目标说明</el-button>
+    </div>
+    <p class="mr-tips">剪切会移动原路径；文件重名自动加 _1、_2；同名文件夹则并入继续传输。</p>
+
+    <el-dialog
+      v-model="progressOpen"
+      title="正在传输"
+      width="420px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :show-close="false"
+      append-to-body
+      class="transfer-progress-dialog"
+    >
+      <el-progress :percentage="progressPercent" :stroke-width="14" striped striped-flow />
+      <p class="progress-meta">{{ progressMetaText }}</p>
+      <p v-if="progressCurrent" class="progress-current" :title="progressCurrent">
+        {{ progressCurrent }}
+      </p>
+    </el-dialog>
+
+    <OpResultDialog
+      v-model="resultOpen"
+      title="文件传输结果"
+      :results="resultItems"
+      :can-retry="resultCanRetry"
+      @retry="onResultRetry"
+    />
+  </div>
+</template>
+
+<style scoped>
+.mb-alert {
+  margin-bottom: 12px;
+  border-radius: var(--mr-radius-md);
+}
+
+.mb-alert :deep(.el-alert__title) {
+  font-weight: 600;
+}
+
+.alert-actions {
+  margin-top: 10px;
+}
+
+.dest-select-row,
+.mode-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.mode-row {
+  margin-top: 10px;
+}
+
+.dest-select {
+  flex: 1 1 200px;
+  min-width: 180px;
+}
+
+.mode-label {
+  font-size: 13px;
+  color: var(--mr-text-secondary);
+  flex-shrink: 0;
+  min-width: 4.5em;
+}
+
+.btn-ic {
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.progress-meta {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--mr-text-secondary);
+  text-align: center;
+}
+
+.progress-current {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--mr-text-secondary);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>

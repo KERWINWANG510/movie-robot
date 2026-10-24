@@ -6,6 +6,7 @@ import { useRouter } from "vue-router";
 
 import http from "../api/http";
 import HostDirPickerDialog from "../components/HostDirPickerDialog.vue";
+import SettingsSubNav from "../components/SettingsSubNav.vue";
 import "../styles/settings-views.css";
 import { useBrowsePrefsStore } from "../stores/browsePrefs";
 import { settingsErrMsg } from "../utils/settingsHttp";
@@ -116,9 +117,13 @@ onMounted(() => {
 <template>
   <div class="settings-page-wrap has-sticky-actionbar" v-loading="loading">
     <div class="page-head mr-page-intro">
-      <h1 class="mr-page-title">存储挂载</h1>
+      <h1 class="settings-page-title">
+        <span>存储挂载</span>
+        <span class="settings-title-badge">STORAGE</span>
+      </h1>
       <p class="mr-page-desc">挂载根目录与传输目标路径将作用于文件浏览与「文件传输」功能。</p>
     </div>
+    <SettingsSubNav />
 
     <el-card class="block-card" shadow="never">
       <template #header>

@@ -1,8 +1,11 @@
 # Design System Master File
 
+> **权威规范：** 前端 UI 以 Stitch 输出的 [`UI-SPEC.md`](./UI-SPEC.md)（Cinematic Studio Dark / Cursor 指南）为准。
+> 本文档保留历史 tokens；与 `UI-SPEC.md` 冲突时 **以 UI-SPEC 为准**。
+>
 > **LOGIC:** When building a specific page, first check `design-system/pages/[page-name].md`.
 > If that file exists, its rules **override** this Master file.
-> If not, strictly follow the rules below.
+> If not, strictly follow `UI-SPEC.md`, then the rules below.
 
 ---
 

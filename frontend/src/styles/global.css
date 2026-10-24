@@ -2,28 +2,35 @@
  * 全局设计令牌与基础样式
  * 深色影院风：近黑画布 + 琥珀主色，让海报与内容成为视觉主角
  */
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
 
 :root {
   color-scheme: dark;
 
-  /* —— Design System tokens（深色影院） —— */
+  /* —— UI-SPEC / Cinematic Studio Dark —— */
   --color-primary: #f59e0b;
-  --color-on-primary: #111113;
-  --color-secondary: #fbbf24;
-  --color-on-secondary: #111113;
-  --color-accent: #fb7185;
+  --color-on-primary: #0c0c0e;
+  --color-secondary: #10b981;
+  --color-on-secondary: #003824;
+  --color-accent: #fb923c;
   --color-on-accent: #111113;
-  --color-background: #0c0c0e;
-  --color-foreground: #f4f4f5;
+  --color-background: #131315;
+  --color-foreground: #f3f3f5;
   --color-card: #18181b;
-  --color-card-foreground: #f4f4f5;
-  --color-muted: #27272a;
-  --color-muted-foreground: #a1a1aa;
-  --color-border: #3f3f46;
-  --color-destructive: #f87171;
+  --color-card-foreground: #f3f3f5;
+  --color-muted: #222225;
+  --color-muted-foreground: #9ca3af;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-destructive: #ef4444;
   --color-on-destructive: #111113;
   --color-ring: #f59e0b;
+
+  --surface-lowest: #0e0e10;
+  --surface: #131315;
+  --surface-low: #1b1b1d;
+  --surface-container: #222225;
+  --surface-high: #2b2b2e;
+  --surface-highest: #343438;
 
   --space-xs: 4px;
   --space-sm: 8px;
@@ -35,26 +42,27 @@
   /* —— 项目别名（兼容现有类名） —— */
   --mr-font-sans:
     "Plus Jakarta Sans",
-    system-ui,
     -apple-system,
-    "Segoe UI",
-    "Noto Sans SC",
+    BlinkMacSystemFont,
     "PingFang SC",
+    "Hiragino Sans GB",
     "Microsoft YaHei",
     sans-serif;
+  --mr-font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
 
   --mr-text: var(--color-foreground);
   --mr-text-secondary: var(--color-muted-foreground);
-  --mr-text-muted: #71717a;
+  --mr-text-muted: #6b7280;
 
   --mr-bg-page: var(--color-background);
-  --mr-bg-elevated: var(--color-card);
-  --mr-border: color-mix(in srgb, var(--color-border) 85%, var(--color-primary));
-  --mr-border-soft: #3f3f46;
+  --mr-bg-elevated: var(--surface-low);
+  --mr-border: rgba(255, 255, 255, 0.12);
+  --mr-border-soft: rgba(255, 255, 255, 0.08);
 
+  --mr-radius-xs: 4px;
   --mr-radius-sm: 8px;
   --mr-radius-md: 12px;
-  --mr-radius-lg: 16px;
+  --mr-radius-lg: 12px;
 
   --mr-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
   --mr-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
@@ -63,7 +71,7 @@
 
   --mr-transition-fast: 0.18s ease;
 
-  /* Element Plus：琥珀主色 + 深色画布覆盖 */
+  /* Element Plus：琥珀主色 + 深色画布覆盖（:root 与 html.dark 双写，压过 EP dark/css-vars） */
   --el-color-primary: #f59e0b;
   --el-color-primary-light-3: #fbbf24;
   --el-color-primary-light-5: #d97706;
@@ -72,30 +80,57 @@
   --el-color-primary-light-9: rgba(245, 158, 11, 0.1);
   --el-color-primary-dark-2: #fbbf24;
 
-  --el-border-radius-base: 10px;
-  --el-border-radius-small: 8px;
+  --el-border-radius-base: 8px;
+  --el-border-radius-small: 4px;
   --el-bg-color: #18181b;
-  --el-bg-color-page: #0c0c0e;
-  --el-bg-color-overlay: #1c1c1f;
-  --el-text-color-primary: #f4f4f5;
+  --el-bg-color-page: #131315;
+  --el-bg-color-overlay: #2b2b2e;
+  --el-text-color-primary: #f3f3f5;
   --el-text-color-regular: #e4e4e7;
-  --el-text-color-secondary: #a1a1aa;
-  --el-text-color-placeholder: #71717a;
-  --el-border-color: #3f3f46;
-  --el-border-color-light: #3f3f46;
-  --el-border-color-lighter: #27272a;
-  --el-border-color-extra-light: #27272a;
-  --el-fill-color: #27272a;
-  --el-fill-color-light: #1f1f23;
-  --el-fill-color-lighter: #18181b;
+  --el-text-color-secondary: #9ca3af;
+  --el-text-color-placeholder: #6b7280;
+  --el-border-color: rgba(255, 255, 255, 0.12);
+  --el-border-color-light: rgba(255, 255, 255, 0.08);
+  --el-border-color-lighter: rgba(255, 255, 255, 0.06);
+  --el-border-color-extra-light: rgba(255, 255, 255, 0.04);
+  --el-fill-color: #2b2b2e;
+  --el-fill-color-light: #222225;
+  --el-fill-color-lighter: #1b1b1d;
   --el-fill-color-blank: #18181b;
   --el-mask-color: rgba(0, 0, 0, 0.7);
   --el-box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   --el-box-shadow-light: 0 2px 8px rgba(0, 0, 0, 0.35);
-  --el-color-success: #34d399;
-  --el-color-warning: #fbbf24;
-  --el-color-danger: #f87171;
-  --el-color-info: #a1a1aa;
+  --el-color-success: #10b981;
+  --el-color-warning: #fb923c;
+  --el-color-danger: #ef4444;
+  --el-color-info: #9ca3af;
+}
+
+/* EP dark/css-vars 使用 html.dark，特异性高于 :root，必须在此重写主色 */
+html.dark {
+  --el-color-primary: #f59e0b;
+  --el-color-primary-light-3: #fbbf24;
+  --el-color-primary-light-5: #d97706;
+  --el-color-primary-light-7: rgba(245, 158, 11, 0.32);
+  --el-color-primary-light-8: rgba(245, 158, 11, 0.18);
+  --el-color-primary-light-9: rgba(245, 158, 11, 0.1);
+  --el-color-primary-dark-2: #fbbf24;
+  --el-color-success: #10b981;
+  --el-color-warning: #fb923c;
+  --el-color-danger: #ef4444;
+  --el-bg-color: #18181b;
+  --el-bg-color-page: #131315;
+  --el-bg-color-overlay: #2b2b2e;
+  --el-text-color-primary: #f3f3f5;
+  --el-text-color-regular: #e4e4e7;
+  --el-text-color-secondary: #9ca3af;
+  --el-text-color-placeholder: #6b7280;
+  --el-border-color: rgba(255, 255, 255, 0.12);
+  --el-border-color-light: rgba(255, 255, 255, 0.08);
+  --el-fill-color: #2b2b2e;
+  --el-fill-color-light: #222225;
+  --el-fill-color-lighter: #1b1b1d;
+  --el-fill-color-blank: #18181b;
 }
 
 *,
@@ -300,10 +335,10 @@ a {
 /* 文件工作台：主列表 + 侧栏，占满视口剩余高度 */
 .mr-workbench {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.85fr);
-  gap: 14px;
+  grid-template-columns: minmax(0, 7fr) minmax(300px, 5fr);
+  gap: 20px;
   align-items: stretch;
-  height: calc(100dvh - 140px);
+  height: calc(100dvh - 220px);
   min-height: 440px;
 }
 
@@ -326,6 +361,11 @@ a {
   min-height: 0;
   padding: 12px 14px 14px;
   overflow: hidden;
+}
+
+/* Stitch 还原：section.panel-card 无 el-card 壳 */
+.mr-workbench > section.panel-card {
+  min-height: 0;
 }
 
 .mr-panel-toolbar {
@@ -447,6 +487,26 @@ a {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+}
+
+/* 说明类弹框：深色工作台风，需用户点「知道了」关闭 */
+.el-message-box {
+  --el-messagebox-title-color: var(--mr-text);
+  --el-messagebox-content-color: var(--mr-text-secondary);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #18181b;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.el-message-box__headerbtn .el-message-box__close {
+  color: var(--mr-text-muted);
+}
+
+.el-message-box__btns .el-button--primary {
+  --el-button-text-color: var(--color-on-primary);
+  --el-button-hover-text-color: var(--color-on-primary);
+  --el-button-active-text-color: var(--color-on-primary);
 }
 
 @media (max-width: 1100px) {

@@ -5,6 +5,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import http from "../api/http";
+import SettingsSubNav from "../components/SettingsSubNav.vue";
 import "../styles/settings-views.css";
 import { useAuthStore } from "../stores/auth";
 import { useBrowsePrefsStore } from "../stores/browsePrefs";
@@ -182,9 +183,13 @@ onMounted(() => {
 <template>
   <div class="settings-page-wrap has-sticky-actionbar" v-loading="loading">
     <div class="page-head mr-page-intro">
-      <h1 class="mr-page-title">AI 服务</h1>
+      <h1 class="settings-page-title">
+        <span>AI 服务</span>
+        <span class="settings-title-badge">AI MODEL</span>
+      </h1>
       <p class="mr-page-desc">配置大模型网关、模型与重命名说明；命名模式控制是否在重命名前必须预览确认。</p>
     </div>
+    <SettingsSubNav />
 
     <el-card class="block-card" shadow="never">
       <template #header>

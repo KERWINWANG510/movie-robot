@@ -1,8 +1,31 @@
-/* 系统配置子页（存储挂载 / AI 服务）共用布局 */
+/* 系统配置子页 — Cinematic Studio Dark */
 .settings-page-wrap {
-  max-width: 880px;
+  max-width: 920px;
   margin: 0 auto;
   padding-bottom: 8px;
+}
+
+.settings-page-title {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--mr-text);
+}
+
+.settings-title-badge {
+  font-family: var(--mr-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: var(--mr-text-muted);
+  background: var(--surface-container, #222225);
 }
 
 .settings-page-wrap.has-sticky-actionbar {
@@ -19,19 +42,21 @@
 }
 
 .settings-page-wrap .block-card {
-  border-radius: var(--mr-radius-md);
-  border: 1px solid var(--mr-border-soft);
-  transition: border-color var(--mr-transition-fast);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #18181b;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+  transition: border-color 0.15s ease;
 }
 
 .settings-page-wrap .block-card:hover {
-  border-color: var(--mr-border);
+  border-color: rgba(255, 255, 255, 0.14);
 }
 
 .settings-page-wrap .block-card :deep(.el-card__header) {
   padding: 14px 18px;
-  border-bottom: 1px solid var(--el-border-color-extra-light);
-  background: var(--color-muted);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--surface-low, #1b1b1d);
 }
 
 .settings-page-wrap .card-head {

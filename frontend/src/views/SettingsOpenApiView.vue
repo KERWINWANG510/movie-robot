@@ -6,6 +6,7 @@ import { useRouter } from "vue-router";
 import axios from "axios";
 
 import http from "../api/http";
+import SettingsSubNav from "../components/SettingsSubNav.vue";
 import "../styles/settings-views.css";
 import { useBrowsePrefsStore } from "../stores/browsePrefs";
 import { settingsErrMsg } from "../utils/settingsHttp";
@@ -267,7 +268,17 @@ async function revokeToken(row: ApiToken) {
 }
 
 function useTokenForDebug(row: ApiToken) {
-  ElMessage.info(`令牌明文仅创建时可见。请将此前保存的完整 Key（前缀 ${row.token_prefix}…）粘贴到调试区。`);
+  void ElMessageBox.alert(
+    `令牌明文仅创建时可见。请将此前保存的完整 Key（前缀 ${row.token_prefix}…）粘贴到调试区。`,
+    "调试说明",
+    {
+      confirmButtonText: "知道了",
+      type: "info",
+      closeOnClickModal: false,
+      closeOnPressEscape: true,
+      showClose: true,
+    },
+  );
 }
 
 async function runDebug() {
@@ -350,11 +361,15 @@ onMounted(() => {
 <template>
   <div class="settings-page-wrap open-api-page" v-loading="loading">
     <div class="page-head mr-page-intro">
-      <h1 class="mr-page-title">开放接口</h1>
+      <h1 class="settings-page-title">
+        <span>开放接口</span>
+        <span class="settings-title-badge">OPEN API</span>
+      </h1>
       <p class="mr-page-desc">
         供外部系统（如下载器）通过 API Key 调用合并、重命名、传输、想看列表等能力。鉴权方式：{{ catalog?.auth || "Bearer / X-Api-Key" }}
       </p>
     </div>
+    <SettingsSubNav />
 
     <el-card class="block-card" shadow="never">
       <template #header>

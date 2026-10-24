@@ -155,18 +155,68 @@ def _copy_file_with_progress(
         add_bytes(0, display_name)
 
 
+def _unique_dest_file(dest_file: Path) -> Path:
+    """若目标文件已存在则在同目录下去重命名；目录冲突不在此处理。"""
+    if not dest_file.exists():
+        return dest_file
+    return dest_file.parent / uniquify_filename(dest_file.parent, dest_file.name)
+
+
+def _resolve_dir_dest(transfer_target: Path, folder_name: str) -> Path:
+    """
+    目录传输目标：
+    - 不存在 → 使用原名
+    - 已存在且为目录 → 并入该目录（不改名）
+    - 已存在且为文件 → 对目录名去重（避免与文件冲突）
+    """
+    candidate = transfer_target / folder_name
+    if not candidate.exists():
+        return candidate
+    if candidate.is_dir():
+        return candidate.resolve()
+    return (transfer_target / uniquify_filename(transfer_target, folder_name)).resolve()
+
+
 def _copy_tree_with_progress(
     src: Path,
     dest_root: Path,
     add_bytes: Callable[[int, str], None],
 ) -> None:
-    dest_root.mkdir(parents=True, exist_ok=False)
+    """复制目录树；dest 可已存在，同名文件自动加序号，子目录直接进入。"""
+    dest_root.mkdir(parents=True, exist_ok=True)
     file_count = 0
     for full, rel in _iter_dir_files(src):
-        _copy_file_with_progress(full, dest_root / rel, display_name=rel, add_bytes=add_bytes)
+        dest_file = _unique_dest_file(dest_root / rel)
+        _copy_file_with_progress(full, dest_file, display_name=rel, add_bytes=add_bytes)
         file_count += 1
     if file_count == 0:
         add_bytes(0, src.name)
+
+
+def _merge_move_tree_with_progress(
+    src: Path,
+    dest_root: Path,
+    *,
+    display_name: str,
+    add_bytes: Callable[[int, str], None],
+) -> None:
+    """将源目录内容并入已存在（或新建）的目标目录，然后删除源目录。"""
+    dest_root.mkdir(parents=True, exist_ok=True)
+    file_count = 0
+    for full, rel in _iter_dir_files(src):
+        dest_file = _unique_dest_file(dest_root / rel)
+        dest_file.parent.mkdir(parents=True, exist_ok=True)
+        size = _file_size(full)
+        if _same_filesystem(full, dest_file.parent):
+            shutil.move(str(full), str(dest_file))
+            add_bytes(size if size > 0 else 0, rel)
+        else:
+            _copy_file_with_progress(full, dest_file, display_name=rel, add_bytes=add_bytes)
+            full.unlink()
+        file_count += 1
+    if file_count == 0:
+        add_bytes(0, display_name)
+    shutil.rmtree(src)
 
 
 def _move_with_progress(
@@ -177,7 +227,7 @@ def _move_with_progress(
     byte_total: int,
     add_bytes: Callable[[int, str], None],
 ) -> None:
-    """同盘直接移动并一次性计入容量；跨盘则分块复制后删除源。"""
+    """同盘直接移动并一次性计入容量；跨盘则分块复制后删除源。目标目录须尚不存在。"""
     dest_parent = dest.parent
     dest_parent.mkdir(parents=True, exist_ok=True)
     if _same_filesystem(src, dest_parent):
@@ -306,10 +356,18 @@ def transfer_paths_to_target(
                     )
                 results.append((src_rel, dest_abs.as_posix(), True, None))
             elif src.is_dir():
-                top_name = uniquify_filename(tt, src.name)
-                dest_root = (tt / top_name).resolve()
+                dest_root = _resolve_dir_dest(tt, src.name)
+                dest_existed = dest_root.exists()
                 if mode == "copy":
                     _copy_tree_with_progress(src, dest_root, add_bytes)
+                elif dest_existed:
+                    # 目标已有同名目录：并入后删源，不改目录名
+                    _merge_move_tree_with_progress(
+                        src,
+                        dest_root,
+                        display_name=src.name,
+                        add_bytes=add_bytes,
+                    )
                 else:
                     _move_with_progress(
                         src,

@@ -53,6 +53,13 @@ def _validate_target_vs_sources(target: Path, resolved_sources: list[Path]) -> N
         )
 
 
+def _source_still_has_files(src_dir: Path) -> bool:
+    try:
+        return any(p.is_file() for p in src_dir.rglob("*"))
+    except OSError:
+        return True
+
+
 def merge_folder_trees_flat(
     *,
     root: Path,
@@ -60,7 +67,8 @@ def merge_folder_trees_flat(
     target_rel: str,
 ) -> list[tuple[str, str, bool, str | None]]:
     """
-    将每个源目录下（递归）所有文件移动到 target 下，扁平存放。
+    将每个源目录下（递归）所有文件移动到 target 下，扁平存放；
+    源目录内文件全部成功移走后删除该源文件夹（含空子目录）。
     返回列表: (源相对路径, 目标相对路径, 成功, 错误信息)
     """
     if len(source_rel_paths) < 2:
@@ -133,5 +141,16 @@ def merge_folder_trees_flat(
             results.append((src_rel, rel_under_root(dest_abs), True, None))
         except OSError as exc:
             results.append((src_rel, "", False, str(exc)))
+
+    # 文件已全部移走（或源本为空）时删除原文件夹；若仍有残留文件则保留
+    for src_dir in resolved_sources:
+        if _source_still_has_files(src_dir):
+            continue
+        try:
+            if src_dir.exists() and src_dir.is_dir():
+                shutil.rmtree(src_dir)
+        except OSError:
+            # 清理失败不影响已合并结果
+            pass
 
     return results

@@ -17,11 +17,14 @@ from app.schemas.files import (
     FileTransferRequest,
     FileTransferResponse,
     FileTransferResultItem,
+    FolderCreateRequest,
+    FolderCreateResponse,
     FolderMergeRequest,
     FolderMergeResponse,
     FolderMergeResultItem,
 )
 from app.services.file_transfer import resolve_transfer_target_directory, transfer_paths_to_target
+from app.services.folder_create import create_folder_under_mount
 from app.services.transfer_destinations import get_destination_by_id
 from app.services.folder_merge import merge_folder_trees_flat
 from app.services.path_security import PathNotAllowedError, resolve_under_root
@@ -89,6 +92,27 @@ async def browse(
 
     display_path = "" if not rel else rel
     return BrowseResponse(path=display_path, entries=entries)
+
+
+@router.post("/folders", response_model=FolderCreateResponse)
+async def create_folder(
+    body: FolderCreateRequest,
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> FolderCreateResponse:
+    """在当前浏览目录（或指定父路径）下新建文件夹。"""
+    cfg_row = await get_system_config_row(db)
+    try:
+        root = effective_mount_root(cfg_row)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="请先在系统配置中填写有效的挂载根目录") from None
+
+    rel, name = create_folder_under_mount(
+        root=root,
+        parent_rel=body.parent_path,
+        name=body.name,
+    )
+    return FolderCreateResponse(path=rel, name=name)
 
 
 @router.post("/folders/merge", response_model=FolderMergeResponse)

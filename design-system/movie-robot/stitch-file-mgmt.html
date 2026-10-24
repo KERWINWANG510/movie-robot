@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>电影机器人 Movie Robot Studio - 文件管理</title>
+<!-- Google Fonts & Material Symbols -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;family=Plus+Jakarta+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 with Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-secondary": "#003824",
+            "surface-variant": "#353437",
+            "on-tertiary-fixed-variant": "#891933",
+            "surface-container": "#201f21",
+            "inverse-on-surface": "#313032",
+            "surface": "#131315",
+            "on-primary-fixed-variant": "#653e00",
+            "on-tertiary-fixed": "#400010",
+            "surface-container-low": "#1b1b1d",
+            "tertiary": "#ffbbc1",
+            "secondary-fixed": "#6ffbbe",
+            "error-container": "#93000a",
+            "on-error": "#690005",
+            "secondary-container": "#00a572",
+            "secondary": "#4edea3",
+            "tertiary-fixed-dim": "#ffb2b9",
+            "inverse-surface": "#e5e1e4",
+            "surface-bright": "#39393b",
+            "inverse-primary": "#855300",
+            "on-secondary-fixed": "#002113",
+            "on-tertiary-container": "#841630",
+            "background": "#131315",
+            "on-secondary-fixed-variant": "#005236",
+            "surface-container-lowest": "#0e0e10",
+            "primary-fixed": "#ffddb8",
+            "on-primary-fixed": "#2a1700",
+            "tertiary-container": "#ff919e",
+            "outline": "#a08e7a",
+            "surface-tint": "#ffb95f",
+            "surface-container-highest": "#353437",
+            "outline-variant": "#534434",
+            "tertiary-fixed": "#ffdadc",
+            "on-error-container": "#ffdad6",
+            "primary-container": "#f59e0b",
+            "surface-dim": "#131315",
+            "on-secondary-container": "#00311f",
+            "on-surface-variant": "#d8c3ad",
+            "error": "#ffb4ab",
+            "primary": "#ffc174",
+            "secondary-fixed-dim": "#4edea3",
+            "primary-fixed-dim": "#ffb95f",
+            "on-surface": "#e5e1e4",
+            "on-primary": "#472a00",
+            "on-primary-container": "#613b00",
+            "on-background": "#e5e1e4",
+            "on-tertiary": "#67001f",
+            "surface-container-high": "#2a2a2c"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "margin": "1rem",
+            "gutter": "1rem",
+            "space-sm": "0.5rem",
+            "space-xs": "0.25rem",
+            "space-md": "1rem",
+            "space-lg": "1.5rem",
+            "margin-desktop": "2rem",
+            "gutter-desktop": "1.5rem",
+            "space-xl": "2.5rem"
+          },
+          "fontFamily": {
+            "display-lg-mobile": ["Plus Jakarta Sans"],
+            "body-md": ["Inter"],
+            "title-sm": ["Plus Jakarta Sans"],
+            "label-mono": ["JetBrains Mono"],
+            "display-lg": ["Plus Jakarta Sans"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "body-sm": ["Inter"],
+            "body-lg": ["Inter"],
+            "label-mono-sm": ["JetBrains Mono"],
+            "headline-lg": ["Plus Jakarta Sans"]
+          },
+          "fontSize": {
+            "display-lg-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "body-md": ["13px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "400" }],
+            "title-sm": ["16px", { "lineHeight": "24px", "letterSpacing": "-0.005em", "fontWeight": "500" }],
+            "label-mono": ["12px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+            "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "headline-md": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "400" }],
+            "body-lg": ["15px", { "lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "400" }],
+            "label-mono-sm": ["10px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "500" }],
+            "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    /* Dark Cinema calibrated backdrop and scrollbar styling */
+    body {
+      background-color: #0C0C0E;
+      color: #E5E1E4;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      overflow-x: hidden;
+    }
+    
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0E0E10;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2A2A2C;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3F3F46;
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      font-size: 18px;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-outlined.filled {
+      font-variation-settings: 'FILL' 1;
+    }
+  </style>
+</head>
+<body class="bg-surface-container-lowest text-on-surface antialiased min-h-screen flex selection:bg-primary-container selection:text-on-primary-container">
+<!-- ========================================================================= -->
+<!-- 1. LEFT NAVIGATION SIDEBAR (Shared Component: SideNavBar)                  -->
+<!-- ========================================================================= -->
+<aside class="fixed left-0 top-0 bottom-0 w-[240px] z-40 px-3 py-4 bg-surface-container-low border-r border-outline-variant/30 flex flex-col justify-between select-none">
+<!-- Top Brand & Navigation Section -->
+<div class="flex flex-col gap-6">
+<!-- Brand Header -->
+<div class="flex items-center gap-3 px-2 pt-1 pb-2">
+<div class="w-9 h-9 rounded-lg bg-primary-container flex items-center justify-center font-headline-md text-headline-md font-bold text-on-primary-container shadow-sm shadow-amber-500/20">
+          MR
+        </div>
+<div class="flex flex-col">
+<span class="font-headline-md text-headline-md font-bold tracking-tight text-on-surface leading-tight">电影机器人</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant/80 font-label-mono-sm text-label-mono-sm">Movie Robot Studio</span>
+</div>
+</div>
+<!-- Functional Group -->
+<div class="flex flex-col gap-1">
+<span class="px-3 pb-1.5 font-label-mono-sm text-label-mono-sm uppercase text-outline tracking-wider font-semibold">功能</span>
+<nav class="flex flex-col gap-1">
+<!-- Active Tab: 文件管理 -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-container-high text-primary font-medium border-l-2 border-primary cursor-pointer active:scale-[0.99] transition-transform duration-100" href="#">
+<span class="material-symbols-outlined text-primary">folder_open</span>
+<span class="font-body-sm text-body-sm text-on-surface">文件管理</span>
+</a>
+<!-- Inactive Tab: 影视媒体库 -->
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-on-surface-variant font-normal hover:bg-surface-container hover:text-on-surface transition-colors duration-150 cursor-pointer active:scale-[0.99]" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant">movie</span>
+<span class="font-body-sm text-body-sm">影视媒体库</span>
+</div>
+<span class="material-symbols-outlined text-[16px] text-outline">chevron_right</span>
+</a>
+<!-- Inactive Tab: 系统配置 -->
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-on-surface-variant font-normal hover:bg-surface-container hover:text-on-surface transition-colors duration-150 cursor-pointer active:scale-[0.99]" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant">settings</span>
+<span class="font-body-sm text-body-sm">系统配置</span>
+</div>
+<span class="material-symbols-outlined text-[16px] text-outline">chevron_right</span>
+</a>
+</nav>
+</div>
+</div>
+<!-- Bottom Storage Summary & Utility Links -->
+<div class="flex flex-col gap-4 pt-4 border-t border-outline-variant/20 px-2">
+<!-- Storage Capacity Pill -->
+<div class="p-2.5 rounded-lg bg-surface-container border border-white/5 flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="font-label-mono-sm text-label-mono-sm text-on-surface-variant">挂载点: 12.4 TB / 16 TB</span>
+<span class="font-label-mono-sm text-label-mono-sm text-primary font-medium">77.5%</span>
+</div>
+<!-- Progress Bar -->
+<div class="w-full h-1.5 rounded-full bg-surface-container-highest overflow-hidden">
+<div class="h-full bg-primary-container rounded-full" style="width: 77.5%;"></div>
+</div>
+</div>
+<!-- Footer Sub-links -->
+<div class="flex flex-col gap-1 text-on-surface-variant">
+<a class="flex items-center gap-2.5 px-1 py-1 rounded text-on-surface-variant hover:text-on-surface transition-colors font-body-sm text-body-sm" href="#">
+<span class="material-symbols-outlined text-[16px]">menu_book</span>
+<span>服务文档</span>
+</a>
+<a class="flex items-center gap-2.5 px-1 py-1 rounded text-secondary hover:text-secondary-fixed transition-colors font-body-sm text-body-sm" href="#">
+<span class="material-symbols-outlined text-[16px] text-secondary">check_circle</span>
+<span class="font-label-mono-sm text-label-mono-sm">系统健康状态: 正常</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- ========================================================================= -->
+<!-- 2. TOP BAR (Shared Component: TopNavBar)                                   -->
+<!-- ========================================================================= -->
+<header class="fixed top-0 right-0 left-[240px] h-14 z-30 flex items-center justify-between px-6 bg-surface/80 backdrop-blur-md border-b border-outline-variant/30 select-none">
+<!-- Left Navigation / Breadcrumbs Cluster -->
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-1.5 font-body-sm text-body-sm text-on-surface-variant">
+<span class="text-on-surface-variant hover:text-on-surface cursor-pointer">工作区</span>
+<span class="text-outline">/</span>
+<span class="text-primary font-medium">本地媒体挂载卷</span>
+</div>
+<span class="h-3 w-px bg-outline-variant/40 mx-1"></span>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-label-mono-sm bg-surface-container-high text-on-surface-variant border border-white/5">
+        生产环境 v2.8.4
+      </span>
+</div>
+<!-- Right Quick Actions & Curated Profile -->
+<div class="flex items-center gap-4">
+<!-- Status Icon Buttons -->
+<div class="flex items-center gap-1 text-on-surface-variant">
+<button class="p-1.5 rounded-md hover:bg-surface-container hover:text-on-surface transition-colors active:opacity-80 relative" title="同步中">
+<span class="material-symbols-outlined">sync</span>
+<span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+</button>
+<button class="p-1.5 rounded-md hover:bg-surface-container hover:text-on-surface transition-colors active:opacity-80" title="终端">
+<span class="material-symbols-outlined">terminal</span>
+</button>
+<button class="p-1.5 rounded-md hover:bg-surface-container hover:text-on-surface transition-colors active:opacity-80" title="通知">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</div>
+<span class="h-4 w-px bg-outline-variant/30"></span>
+<!-- Primary Action: 系统文档 -->
+<a class="flex items-center gap-1.5 font-label-mono-sm text-label-mono-sm px-2.5 py-1 rounded bg-surface-container border border-white/5 text-on-surface hover:border-outline transition-colors" href="#">
+<span class="material-symbols-outlined text-[15px]">menu_book</span>
+<span>系统文档</span>
+</a>
+<!-- Profile Avatar & Identity -->
+<div class="flex items-center gap-2 pl-1 cursor-pointer group">
+<div class="w-7 h-7 rounded-full bg-surface-container-high border border-outline-variant/40 flex items-center justify-center text-primary font-bold text-xs">
+          A
+        </div>
+<div class="flex items-center gap-1 font-body-sm text-body-sm text-on-surface group-hover:text-primary transition-colors">
+<span>管理员 (Admin)</span>
+<span class="material-symbols-outlined text-[16px] text-outline">arrow_drop_down</span>
+</div>
+</div>
+</div>
+</header>
+<!-- ========================================================================= -->
+<!-- 3. MAIN WORKBENCH CONTENT CANVAS                                          -->
+<!-- ========================================================================= -->
+<main class="ml-[240px] mt-14 flex-1 p-6 flex flex-col gap-5 min-h-[calc(100vh-3.5rem)]">
+<!-- Top Headline Section -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+<div>
+<h1 class="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight flex items-center gap-2.5">
+<span>文件管理</span>
+<span class="font-label-mono text-label-mono text-outline font-normal px-2 py-0.5 rounded bg-surface-container text-xs">UNIFIED WORKSPACE</span>
+</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">
+          统一浏览已挂载存储目录，快捷切换重命名、文件夹合并与文件传输工作流。
+        </p>
+</div>
+<!-- Workflow Mode Tabs (Segmented Control Pill Bar) -->
+<div class="inline-flex p-1 rounded-xl bg-surface-container-low border border-white/5 shadow-inner">
+<button class="relative flex items-center gap-2 px-4 py-1.5 rounded-lg font-body-sm text-body-sm font-semibold bg-surface-container-high text-on-surface border border-white/10 shadow-sm transition-all duration-150">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<span>文件重命名</span>
+</button>
+<button class="flex items-center gap-2 px-4 py-1.5 rounded-lg font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors">
+<span>文件夹合并</span>
+</button>
+<button class="flex items-center gap-2 px-4 py-1.5 rounded-lg font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors">
+<span>文件传输</span>
+</button>
+</div>
+</div>
+<!-- Slim Quiet Setup Checklist Strip -->
+<div class="px-4 py-2.5 rounded-lg bg-surface-container-low border border-white/5 flex items-center justify-between font-label-mono text-label-mono text-xs">
+<div class="flex items-center flex-wrap gap-6 text-on-surface-variant">
+<div class="flex items-center gap-1.5 text-secondary">
+<span class="material-symbols-outlined text-[16px] text-secondary">check</span>
+<span>媒体挂载点就绪 (/mnt/media/nas01)</span>
+</div>
+<div class="flex items-center gap-1.5 text-secondary">
+<span class="material-symbols-outlined text-[16px] text-secondary">check</span>
+<span>AI 识别大模型配置有效 (TMDB &amp; Douban)</span>
+</div>
+<div class="flex items-center gap-1.5 text-on-surface">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-ping inline-block"></span>
+<span>目录自动监听服务: 运行中</span>
+</div>
+</div>
+<a class="text-primary hover:underline flex items-center gap-1 font-body-sm text-body-sm" href="#">
+<span>配置详情</span>
+<span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</a>
+</div>
+<!-- Two-Column Workbench Layout (60 / 40 Ratio) -->
+<div class="grid grid-cols-12 gap-5 flex-1 items-start">
+<!-- ===================================================================== -->
+<!-- Left Hero Card: 浏览挂载目录 (col-span-7 ~60%)                        -->
+<!-- ===================================================================== -->
+<section class="col-span-12 xl:col-span-7 bg-[#18181B] border border-white/10 rounded-xl overflow-hidden flex flex-col shadow-2xl shadow-black/40">
+<!-- Hero Card Header: Navigation Path & Quick Actions -->
+<div class="p-4 border-b border-white/5 flex flex-col gap-3">
+<!-- Breadcrumb Path Bar -->
+<div class="flex items-center justify-between bg-surface-container-lowest px-3 py-2 rounded-lg border border-white/5 font-label-mono text-label-mono">
+<div class="flex items-center gap-1.5 text-on-surface-variant overflow-x-auto text-xs whitespace-nowrap">
+<span class="material-symbols-outlined text-outline text-[16px]">folder</span>
+<span class="text-outline">/</span>
+<span class="hover:text-primary cursor-pointer">mnt</span>
+<span class="text-outline">/</span>
+<span class="hover:text-primary cursor-pointer">media</span>
+<span class="text-outline">/</span>
+<span class="hover:text-primary cursor-pointer">downloads</span>
+<span class="text-outline">/</span>
+<span class="text-on-surface font-semibold text-primary">2024_Q4</span>
+<span class="text-outline">/</span>
+</div>
+<button class="text-outline hover:text-on-surface transition-colors ml-2" title="复制路径">
+<span class="material-symbols-outlined text-[16px]">content_copy</span>
+</button>
+</div>
+<!-- Action Toolbar Row -->
+<div class="flex items-center justify-between gap-2 flex-wrap">
+<div class="flex items-center gap-2">
+<button class="px-2.5 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high border border-white/5 text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm flex items-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-[16px]">home</span>
+<span>根目录</span>
+</button>
+<button class="px-2.5 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high border border-white/5 text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm flex items-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-[16px]">arrow_upward</span>
+<span>返回上级</span>
+</button>
+<button class="p-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high border border-white/5 text-on-surface-variant hover:text-on-surface transition-colors" title="刷新目录">
+<span class="material-symbols-outlined text-[16px]">refresh</span>
+</button>
+</div>
+<button class="px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high border border-white/5 text-on-surface font-body-sm text-body-sm flex items-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-[16px] text-primary">create_new_folder</span>
+<span>新建文件夹</span>
+</button>
+</div>
+<!-- Filter & Controls Sub-bar -->
+<div class="flex items-center justify-between gap-3 pt-1 text-xs">
+<!-- Search Input -->
+<div class="relative flex-1 max-w-xs">
+<span class="material-symbols-outlined absolute left-2.5 top-2 text-outline text-[16px]">search</span>
+<input class="w-full h-8 pl-8 pr-3 bg-surface-container-lowest border border-white/5 rounded-lg text-on-surface placeholder:text-outline text-xs focus:outline-none focus:border-primary-container transition-colors" placeholder="按文件名筛选..." type="text"/>
+</div>
+<div class="flex items-center gap-3">
+<!-- Segmented File Filter Toggle -->
+<div class="inline-flex rounded-lg bg-surface-container-lowest p-0.5 border border-white/5 font-label-mono-sm text-label-mono-sm">
+<button class="px-2 py-1 rounded bg-surface-container-high text-on-surface font-medium">全部 (14)</button>
+<button class="px-2 py-1 rounded text-outline hover:text-on-surface">仅文件 (11)</button>
+<button class="px-2 py-1 rounded text-outline hover:text-on-surface">仅文件夹 (3)</button>
+</div>
+<!-- Checkbox: Hide Hidden Files -->
+<label class="flex items-center gap-1.5 cursor-pointer text-on-surface-variant select-none">
+<input checked="" class="rounded border-outline-variant bg-surface-container text-primary-container focus:ring-0 focus:ring-offset-0 w-3.5 h-3.5" type="checkbox"/>
+<span class="font-body-sm text-body-sm">隐藏 . 开头文件</span>
+</label>
+</div>
+</div>
+</div>
+<!-- High-Fidelity Technical File Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-white/5 bg-surface-container-lowest/60 text-outline font-label-mono-sm text-label-mono-sm uppercase">
+<th class="py-2.5 px-3 w-10 text-center">
+<input class="rounded border-outline-variant bg-surface-container text-primary-container focus:ring-0 w-3.5 h-3.5" type="checkbox"/>
+</th>
+<th class="py-2.5 px-3 font-medium">名称</th>
+<th class="py-2.5 px-3 font-medium w-24">大小</th>
+<th class="py-2.5 px-3 font-medium hidden sm:table-cell w-36">完整路径</th>
+<th class="py-2.5 px-3 font-medium text-right w-28">状态/标签</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-white/[0.04] font-body-sm text-body-sm">
+<!-- Row 1: Folder Oppenheimer -->
+<tr class="hover:bg-surface-container/50 transition-colors group">
+<td class="py-2.5 px-3 text-center">
+<input class="rounded border-outline-variant bg-surface-container text-primary-container focus:ring-0 w-3.5 h-3.5" type="checkbox"/>
+</td>
+<td class="py-2.5 px-3">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-primary text-[19px]">folder</span>
+<a class="text-primary hover:underline font-medium truncate max-w-sm" href="#">Oppenheimer.2023.IMAX.UHD.Remux</a>
+<span class="text-[11px] font-label-mono-sm text-outline">(3 项)</span>
+</div>
+</td>
+<td class="py-2.5 px-3 font-label-mono text-label-mono text-outline">74.2 GB</td>
+<td class="py-2.5 px-3 font-label-mono-sm text-label-mono-sm text-outline/80 truncate max-w-[140px] hidden sm:table-cell">.../2024_Q4/Oppenheimer/</td>
+<td class="py-2.5 px-3 text-right">
+<span class="inline-block px-2 py-0.5 rounded text-[11px] font-label-mono-sm bg-surface-container text-on-surface-variant border border-white/5">目录卷</span>
+</td>
+</tr>
+<!-- Row 2: File Dune Part Two (Checked) -->
+<tr class="bg-surface-container-high/30 hover:bg-surface-container-high/50 transition-colors group">
+<td class="py-2.5 px-3 text-center">
+<input checked="" class="rounded border-outline-variant bg-surface-container text-primary-container focus:ring-0 w-3.5 h-3.5" type="checkbox"/>
+</td>
+<td class="py-2.5 px-3">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-outline text-[19px]">movie</span>
+<span class="text-on-surface font-medium truncate max-w-sm">Dune.Part.Two.2024.2160p.HQ.WEB-DL.DDP5.1.Atmos.H.265.mkv</span>
+</div>
+</td>
+<td class="py-2.5 px-3 font-label-mono text-label-mono text-on-surface-variant">24.8 GB</td>
+<td class="py-2.5 px-3 font-label-mono-sm text-label-mono-sm text-outline/80 truncate max-w-[140px] hidden sm:table-cell">.../2024_Q4/Dune.Part.Two...</td>
+<td class="py-2.5 px-3 text-right">
+<span class="inline-block px-2 py-0.5 rounded text-[11px] font-label-mono-sm bg-primary-container/10 text-primary border border-primary-container/30">待匹配</span>
+</td>
+</tr>
+<!-- Row 3: File Poor Things (Checked) -->
+<tr class="bg-surface-container-high/30 hover:bg-surface-container-high/50 transition-colors group">
+<td class="py-2.5 px-3 text-center">
+<input checked="" class="rounded border-outline-variant bg-surface-container text-primary-container focus:ring-0 w-3.5 h-3.5" type="checkbox"/>
+</td>
+<td class="py-2.5 px-3">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-outline text-[19px]">movie</span>
+<span class="text-on-surface font-medium truncate max-w-sm">Poor.Things.2023.1080p.BluRay.x264.DTS-HD.MA.5.1.mkv</span>
+</div>
+</td>
+<td class="py-2.5 px-3 font-label-mono text-label-mono text-on-surface-variant">14.1 GB</td>
+<td class="py-2.5 px-3 font-label-mono-sm text-label-mono-sm text-outline/80 truncate max-w-[140px] hidden sm:table-cell">.../2024_Q4/Poor.Things...</td>
+<td class="py-2.5 px-3 text-right">
+<span class="inline-block px-2 py-0.5 rounded text-[11px] font-label-mono-sm bg-primary-container/10 text-primary border border-primary-container/30">待匹配</span>
+</td>
+</tr>
+<!-- Row 4: File The Zone of Interest (Checked) -->
+<tr class="bg-surface-container-high/30 hover:bg-surface-container-high/50 transition-colors group">
+<td class="py-2.5 px-3 text-center">
+<input checked="" class="rounded border-outline-variant bg-surface-container text-primary-container focus:ring-0 w-3.5 h-3.5" type="checkbox"/>
+</td>
+<td class="py-2.5 px-3">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-outline text-[19px]">movie</span>
+<span class="text-on-surface font-medium truncate max-w-sm">The.Zone.of.Interest.2023.2160p.UHD.Remux.mkv</span>
+</div>
+</td>
+<td class="py-2.5 px-3 font-label-mono text-label-mono text-on-surface-variant">18.6 GB</td>
+<td class="py-2.5 px-3 font-label-mono-sm text-label-mono-sm text-outline/80 truncate max-w-[140px] hidden sm:table-cell">.../2024_Q4/Zone.of.Interest...</td>
+<td class="py-2.5 px-3 text-right">
+<span class="inline-block px-2 py-0.5 rounded text-[11px] font-label-mono-sm bg-primary-container/10 text-primary border border-primary-container/30">待匹配</span>
+</td>
+</tr>
+<!-- Row 5: Folder Anatomy of a Fall -->
+<tr class="hover:bg-surface-container/50 transition-colors group">
+<td class="py-2.5 px-3 text-center">
+<input class="rounded border-outline-variant bg-surface-container text-primary-container focus:ring-0 w-3.5 h-3.5" type="checkbox"/>
+</td>
+<td class="py-2.5 px-3">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-primary text-[19px]">folder</span>
+<a class="text-primary hover:underline font-medium truncate max-w-sm" href="#">Anatomy.of.a.Fall.2023.Criterion</a>
+<span class="text-[11px] font-label-mono-sm text-outline">(2 项)</span>
+</div>
+</td>
+<td class="py-2.5 px-3 font-label-mono text-label-mono text-outline">28.4 GB</td>
+<td class="py-2.5 px-3 font-label-mono-sm text-label-mono-sm text-outline/80 truncate max-w-[140px] hidden sm:table-cell">.../2024_Q4/Anatomy...</td>
+<td class="py-2.5 px-3 text-right">
+<span class="inline-block px-2 py-0.5 rounded text-[11px] font-label-mono-sm bg-surface-container text-on-surface-variant border border-white/5">目录卷</span>
+</td>
+</tr>
+<!-- Row 6: Image File -->
+<tr class="hover:bg-surface-container/50 transition-colors group">
+<td class="py-2.5 px-3 text-center">
+<input class="rounded border-outline-variant bg-surface-container text-primary-container focus:ring-0 w-3.5 h-3.5" type="checkbox"/>
+</td>
+<td class="py-2.5 px-3">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-outline text-[19px]">image</span>
+<span class="text-on-surface-variant truncate max-w-sm">movie_cover_poster_hq.png</span>
+</div>
+</td>
+<td class="py-2.5 px-3 font-label-mono text-label-mono text-outline">4.2 MB</td>
+<td class="py-2.5 px-3 font-label-mono-sm text-label-mono-sm text-outline/80 truncate max-w-[140px] hidden sm:table-cell">.../2024_Q4/movie_cover...</td>
+<td class="py-2.5 px-3 text-right">
+<span class="inline-block px-2 py-0.5 rounded text-[11px] font-label-mono-sm bg-tertiary-container/10 text-tertiary border border-tertiary-container/30">资源附件</span>
+</td>
+</tr>
+<!-- Row 7: Document File -->
+<tr class="hover:bg-surface-container/50 transition-colors group">
+<td class="py-2.5 px-3 text-center">
+<input class="rounded border-outline-variant bg-surface-container text-primary-container focus:ring-0 w-3.5 h-3.5" type="checkbox"/>
+</td>
+<td class="py-2.5 px-3">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-outline text-[19px]">description</span>
+<span class="text-on-surface-variant truncate max-w-sm">media_info_release_notes.pdf</span>
+</div>
+</td>
+<td class="py-2.5 px-3 font-label-mono text-label-mono text-outline">380 KB</td>
+<td class="py-2.5 px-3 font-label-mono-sm text-label-mono-sm text-outline/80 truncate max-w-[140px] hidden sm:table-cell">.../2024_Q4/media_info...</td>
+<td class="py-2.5 px-3 text-right">
+<span class="inline-block px-2 py-0.5 rounded text-[11px] font-label-mono-sm bg-surface-container text-outline border border-white/5">元数据文档</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Card Action Footer (for rename mode) -->
+<div class="mt-auto p-4 border-t border-white/5 bg-surface-container-lowest flex flex-col sm:flex-row items-center justify-between gap-3">
+<div class="flex items-center gap-2 text-on-surface-variant font-label-mono text-label-mono">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span>已选择 <strong class="text-on-surface font-semibold">3</strong> 个媒体文件 (共计 57.5 GB)</span>
+</div>
+<div class="flex items-center gap-2.5 w-full sm:w-auto">
+<!-- Secondary Emerald Action: 确认执行重命名 -->
+<button class="flex-1 sm:flex-none px-3.5 py-2 rounded-lg bg-secondary-container/20 hover:bg-secondary-container/30 text-secondary border border-secondary/30 font-body-sm text-body-sm font-semibold flex items-center justify-center gap-1.5 transition-all">
+<span class="material-symbols-outlined text-[17px] text-secondary">check</span>
+<span>确认执行重命名</span>
+</button>
+<!-- Primary Amber Action: 预览 AI 建议名 -->
+<button class="flex-1 sm:flex-none px-4 py-2 rounded-lg bg-primary-container hover:bg-[#D97706] text-[#0C0C0E] font-body-sm text-body-sm font-bold flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-amber-500/20 active:scale-[0.98]">
+<span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+<span>预览 AI 建议名</span>
+</button>
+</div>
+</div>
+</section>
+<!-- ===================================================================== -->
+<!-- Right Panel Card: 预览与编辑 (col-span-5 ~40%)                        -->
+<!-- ===================================================================== -->
+<section class="col-span-12 xl:col-span-5 bg-[#18181B] border border-white/10 rounded-xl overflow-hidden flex flex-col shadow-2xl shadow-black/40 min-h-[580px]">
+<!-- Right Card Header -->
+<div class="p-4 border-b border-white/5 flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<h2 class="font-headline-md text-headline-md font-bold text-on-surface">预览与编辑</h2>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-label-mono-sm bg-primary-container/10 text-primary border border-primary-container/30">
+              重命名待命
+            </span>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high border border-white/5 text-on-surface-variant hover:text-on-surface transition-colors flex items-center gap-1.5 text-xs" title="规则方案配置">
+<span class="material-symbols-outlined text-[16px]">tune</span>
+<span class="font-label-mono-sm text-label-mono-sm hidden md:inline">规则: TMDB中英双语</span>
+</button>
+</div>
+</div>
+<!-- Right Card Body: Refined Empty Elegant State -->
+<div class="flex-1 p-6 flex flex-col justify-center items-center text-center">
+<div class="w-full max-w-md p-6 rounded-xl border border-dashed border-white/10 bg-surface-container-lowest/40 flex flex-col items-center gap-4">
+<!-- Elegant Media Film Reel Icon Emblem -->
+<div class="w-14 h-14 rounded-2xl bg-surface-container-high/80 border border-white/10 flex items-center justify-center text-primary relative shadow-inner">
+<span class="material-symbols-outlined text-[32px] text-primary">movie_filter</span>
+<span class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-primary-container"></span>
+</div>
+<div class="flex flex-col gap-1.5">
+<h3 class="font-title-sm text-title-sm font-semibold text-on-surface tracking-tight">尚未生成重命名方案预览</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+                在左侧目录中勾选需要处理的文件或剧集，点击底部的「预览 AI 建议名」按钮。系统将自动调用 TMDB 与豆瓣元数据接口，在此实时生成标准化影视重命名方案及元数据刮削清单。
+              </p>
+</div>
+<!-- Quick Rule Preset Overview Chip -->
+<div class="w-full text-left p-3 rounded-lg bg-surface-container border border-white/5 flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="font-label-mono-sm text-label-mono-sm text-outline uppercase">当前默认命名格式</span>
+<span class="text-[10px] text-secondary font-label-mono-sm">TMDB MATCH v2</span>
+</div>
+<code class="font-label-mono-sm text-label-mono-sm text-primary break-all bg-surface-container-lowest px-2 py-1 rounded border border-white/5">
+                {主标题} ({年份}) / {主标题} - S{季:02d}E{集:02d} - {副标题}.{后缀}
+              </code>
+</div>
+<!-- Guide Checklist Tips -->
+<div class="w-full flex flex-col gap-2 pt-2 border-t border-white/5 text-left font-body-sm text-body-sm text-outline">
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-[15px] text-primary mt-0.5">verified</span>
+<span>支持多文件智能分词、压制组及多版本 (Remux / WEB-DL) 识别</span>
+</div>
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-[15px] text-primary mt-0.5">edit_note</span>
+<span>可在生成后一键手动微调标题、年代与季集序号</span>
+</div>
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-[15px] text-secondary mt-0.5">history</span>
+<span>所有执行均支持原子化撤销并保留不可变操作备份日志</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Card Footer: Parameter Presets -->
+<div class="p-3.5 border-t border-white/5 bg-surface-container-lowest flex items-center justify-between text-xs text-on-surface-variant font-label-mono-sm text-label-mono-sm">
+<div class="flex items-center gap-3">
+<span>刮削源: <span class="text-on-surface font-medium">TheMovieDb</span></span>
+<span class="text-outline">|</span>
+<span>中英双语格式: <span class="text-secondary font-medium">已激活</span></span>
+</div>
+<span class="text-outline">耗时预计: &lt; 1.2s</span>
+</div>
+</section>
+</div>
+</main>
+</body></html>
