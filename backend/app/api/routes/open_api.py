@@ -12,6 +12,9 @@ from app.database import get_db
 from app.models.api_access_token import ApiAccessToken
 from app.schemas.files import (
     BrowseResponse,
+    FileDeleteRequest,
+    FileDeleteResponse,
+    FileDeleteResultItem,
     FileEntry,
     FileTransferRequest,
     FileTransferResponse,
@@ -43,6 +46,7 @@ from app.schemas.rename import (
     PreviewResultRow,
 )
 from app.schemas.system_settings import TransferDestinationPublic
+from app.services.file_delete import delete_paths_under_mount
 from app.services.file_transfer import resolve_transfer_target_directory, transfer_paths_to_target
 from app.services.folder_create import create_folder_under_mount
 from app.services.folder_merge import merge_folder_trees_flat
@@ -183,6 +187,24 @@ async def open_create_folder(
         name=body.name,
     )
     return FolderCreateResponse(path=rel, name=name)
+
+
+@router.post("/delete", response_model=FileDeleteResponse)
+async def open_delete_files(
+    body: FileDeleteRequest,
+    _token: ApiAccessToken = Depends(get_open_api_token),
+    db: AsyncSession = Depends(get_db),
+) -> FileDeleteResponse:
+    """删除挂载根下的文件或文件夹（可多选；文件夹递归删除）。"""
+    root = await _require_mount(db)
+    raw = delete_paths_under_mount(root=root, paths=body.paths)
+    items = [
+        FileDeleteResultItem(path=p, is_dir=is_dir, ok=ok, message=msg)
+        for p, is_dir, ok, msg in raw
+    ]
+    ok_n = sum(1 for x in items if x.ok)
+    fail_n = sum(1 for x in items if not x.ok)
+    return FileDeleteResponse(results=items, ok_count=ok_n, failed_count=fail_n)
 
 
 @router.post("/folders/merge", response_model=FolderMergeResponse)

@@ -306,6 +306,58 @@ def build_open_api_catalog() -> OpenApiCatalogResponse:
             error_codes=_COMMON_ERRORS,
         ),
         OpenApiCatalogEndpoint(
+            id="files-delete",
+            method="POST",
+            path="/api/v1/open/delete",
+            summary="删除文件或文件夹",
+            description=(
+                "删除挂载根下的一个或多个文件/文件夹；文件夹将递归删除其全部内容。"
+                "若同时勾选父目录与其子项，服务端只删除父目录（子项随父目录一并移除）。"
+            ),
+            notes=[
+                "paths 至少 1 个，均为相对挂载根的路径。",
+                "不能删除挂载根本身（空路径）。",
+                "删除文件夹不可恢复；请确认路径无误后再调用。",
+                "results 按实际执行删除的路径返回（折叠嵌套后的列表）。",
+            ],
+            headers=[_AUTH_HEADER],
+            request_fields=[
+                _f(
+                    "paths",
+                    "array<string>",
+                    "相对挂载根的文件或文件夹路径，可多选",
+                    required=True,
+                    example=["downloads/旧片.mkv", "downloads/待清理"],
+                ),
+            ],
+            response_fields=[
+                _f(
+                    "results",
+                    "array<object>",
+                    "每项删除结果明细",
+                    required=True,
+                    children=[
+                        _f("path", "string", "被删除项的相对挂载根路径", required=True),
+                        _f("is_dir", "boolean", "删除前是否为目录", required=True),
+                        _f("ok", "boolean", "该项是否成功", required=True),
+                        _f("message", "string|null", "失败原因；成功时一般为 null", required=False),
+                    ],
+                ),
+                _f("ok_count", "integer", "成功项数", required=True, example=1),
+                _f("failed_count", "integer", "失败项数", required=True, example=0),
+            ],
+            body_example={"paths": ["downloads/旧片.mkv", "downloads/待清理"]},
+            response_example={
+                "results": [
+                    {"path": "downloads/旧片.mkv", "is_dir": False, "ok": True, "message": None},
+                    {"path": "downloads/待清理", "is_dir": True, "ok": True, "message": None},
+                ],
+                "ok_count": 2,
+                "failed_count": 0,
+            },
+            error_codes=_COMMON_ERRORS,
+        ),
+        OpenApiCatalogEndpoint(
             id="folders-merge",
             method="POST",
             path="/api/v1/open/folders/merge",

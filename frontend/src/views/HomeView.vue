@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   CopyDocument,
+  Delete,
   Document,
   Folder,
   HomeFilled,
@@ -527,6 +528,65 @@ async function createFolder() {
   }
 }
 
+const deleteLoading = ref(false);
+
+async function deleteEntries(pathsOverride?: string[]) {
+  const paths = [...(pathsOverride ?? selectedPaths.value)];
+  if (paths.length === 0) {
+    ElMessage.warning("请先勾选要删除的文件或文件夹");
+    return;
+  }
+  const sample = paths
+    .slice(0, 3)
+    .map((p) => p.split("/").pop() || p)
+    .join("、");
+  const more = paths.length > 3 ? ` 等 ${paths.length} 项` : "";
+  try {
+    await ElMessageBox.confirm(
+      `确定删除「${sample}${more}」？文件夹将连同其内容一并删除，且不可恢复。`,
+      "删除确认",
+      {
+        type: "warning",
+        confirmButtonText: "删除",
+        cancelButtonText: "取消",
+        confirmButtonClass: "el-button--danger",
+      },
+    );
+  } catch {
+    return;
+  }
+  deleteLoading.value = true;
+  try {
+    const { data } = await http.post<{
+      results: { path: string; is_dir: boolean; ok: boolean; message: string | null }[];
+      ok_count: number;
+      failed_count: number;
+    }>("/files/delete", { paths });
+    const items: OpResultItem[] = data.results.map((r) => ({
+      key: r.path,
+      source: r.path,
+      ok: r.ok,
+      message: r.message,
+    }));
+    if (data.failed_count === 0) {
+      ElMessage.success(`已删除 ${data.ok_count} 项`);
+    } else {
+      showResults("删除结果", items, false);
+    }
+    selectedPaths.value = [];
+    await loadBrowse();
+  } catch (e: unknown) {
+    ElMessage.error(errMsg(e));
+  } finally {
+    deleteLoading.value = false;
+  }
+}
+
+function deleteOne(row: FileEntry, ev?: Event) {
+  ev?.stopPropagation();
+  void deleteEntries([row.path]);
+}
+
 watch(currentPath, () => {
   if (mountReady.value) void loadBrowse();
 });
@@ -717,6 +777,16 @@ function statusBadge(row: FileEntry): { text: string; tone: "dir" | "pending" | 
                   <el-icon><Folder /></el-icon>
                   <span>新建文件夹</span>
                 </button>
+                <button
+                  type="button"
+                  class="tool-btn danger"
+                  :disabled="!selectedPaths.length || deleteLoading"
+                  :title="selectedPaths.length ? `删除已选 ${selectedPaths.length} 项` : '请先勾选要删除的项'"
+                  @click="deleteEntries()"
+                >
+                  <el-icon><Delete /></el-icon>
+                  <span>删除{{ selectedPaths.length ? ` (${selectedPaths.length})` : "" }}</span>
+                </button>
               </div>
               <div class="tool-right">
                 <el-input
@@ -802,6 +872,21 @@ function statusBadge(row: FileEntry): { text: string; tone: "dir" | "pending" | 
                   <span class="status-badge" :class="statusBadge(row).tone">
                     {{ statusBadge(row).text }}
                   </span>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="72" align="center" class-name="col-actions" fixed="right">
+                <template #default="{ row }">
+                  <el-button
+                    text
+                    type="danger"
+                    size="small"
+                    class="row-del-btn"
+                    :loading="deleteLoading"
+                    title="删除"
+                    @click="deleteOne(row, $event)"
+                  >
+                    <el-icon><Delete /></el-icon>
+                  </el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -1244,6 +1329,25 @@ function statusBadge(row: FileEntry): { text: string; tone: "dir" | "pending" | 
 
 .tool-btn.accent .el-icon {
   color: var(--el-color-primary);
+}
+
+.tool-btn.danger {
+  color: color-mix(in srgb, var(--el-color-danger) 88%, #fff);
+  border-color: color-mix(in srgb, var(--el-color-danger) 35%, transparent);
+}
+
+.tool-btn.danger:hover:not(:disabled) {
+  color: #fff;
+  background: color-mix(in srgb, var(--el-color-danger) 22%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-danger) 55%, transparent);
+}
+
+.tool-btn.danger .el-icon {
+  color: inherit;
+}
+
+.row-del-btn {
+  padding: 4px;
 }
 
 .filter-input {

@@ -98,3 +98,25 @@ class FileTransferResponse(BaseModel):
     results: list[FileTransferResultItem] = Field(description="每项传输结果明细")
     ok_count: int = Field(description="成功项数")
     failed_count: int = Field(description="失败项数")
+
+
+class FileDeleteRequest(BaseModel):
+    paths: list[str] = Field(
+        ...,
+        min_length=1,
+        description="相对挂载根的文件或文件夹路径，可多选；若同时勾选父目录与其子项，仅删除父目录",
+        examples=[["downloads/旧片.mkv", "downloads/待清理"]],
+    )
+
+
+class FileDeleteResultItem(BaseModel):
+    path: str = Field(description="被删除项的相对挂载根路径")
+    is_dir: bool = Field(description="删除前是否为目录")
+    ok: bool = Field(description="该项是否成功")
+    message: str | None = Field(default=None, description="失败原因；成功时一般为 null")
+
+
+class FileDeleteResponse(BaseModel):
+    results: list[FileDeleteResultItem] = Field(description="每项删除结果明细")
+    ok_count: int = Field(description="成功项数")
+    failed_count: int = Field(description="失败项数")

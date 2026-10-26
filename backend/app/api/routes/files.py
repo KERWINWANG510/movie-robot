@@ -13,6 +13,9 @@ from app.database import get_db
 from app.models.user import User
 from app.schemas.files import (
     BrowseResponse,
+    FileDeleteRequest,
+    FileDeleteResponse,
+    FileDeleteResultItem,
     FileEntry,
     FileTransferRequest,
     FileTransferResponse,
@@ -23,6 +26,7 @@ from app.schemas.files import (
     FolderMergeResponse,
     FolderMergeResultItem,
 )
+from app.services.file_delete import delete_paths_under_mount
 from app.services.file_transfer import resolve_transfer_target_directory, transfer_paths_to_target
 from app.services.folder_create import create_folder_under_mount
 from app.services.transfer_destinations import get_destination_by_id
@@ -92,6 +96,29 @@ async def browse(
 
     display_path = "" if not rel else rel
     return BrowseResponse(path=display_path, entries=entries)
+
+
+@router.post("/delete", response_model=FileDeleteResponse)
+async def delete_files(
+    body: FileDeleteRequest,
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> FileDeleteResponse:
+    """删除挂载根下的文件或文件夹（可多选；文件夹递归删除）。"""
+    cfg_row = await get_system_config_row(db)
+    try:
+        root = effective_mount_root(cfg_row)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="请先在系统配置中填写有效的挂载根目录") from None
+
+    raw = delete_paths_under_mount(root=root, paths=body.paths)
+    items = [
+        FileDeleteResultItem(path=p, is_dir=is_dir, ok=ok, message=msg)
+        for p, is_dir, ok, msg in raw
+    ]
+    ok_n = sum(1 for x in items if x.ok)
+    fail_n = sum(1 for x in items if not x.ok)
+    return FileDeleteResponse(results=items, ok_count=ok_n, failed_count=fail_n)
 
 
 @router.post("/folders", response_model=FolderCreateResponse)
